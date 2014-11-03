@@ -26,19 +26,23 @@ class PerformanceTest(object):
     def __init__(self, *func_args, **func_kwargs):
         self._func_args = func_args
         self._func_kwargs = func_kwargs
-
+        self.func_src = ''
+        self.func = None
+        self.log = log = StringIO.StringIO()
+        self.time_avg_seconds = None
+        
     def __call__(self, func):
         src = inspect.getsource(func)
         self.func = func
         self.func_src = src[src.index('\n') + 1:]
 
-        self.log = log = StringIO.StringIO()
+        log = self.log
         log.write(self.func_src)
 
         # Create the function call statment as a string
         call = "{0}(*{1}, **{2})".format(func.__name__, self._func_args, self._func_kwargs)
-        self._timer = timeit.Timer(stmt=call, setup=self.func_src)
-        trials = self._timer.repeat(self.timeit_repeat, self.timeit_number)
+        _timer = timeit.Timer(stmt=call, setup=self.func_src)
+        trials = _timer.repeat(self.timeit_repeat, self.timeit_number)
 
         self.time_avg_seconds = sum(trials) / len(trials)
 
@@ -55,6 +59,7 @@ class PerformanceComparison(PerformanceTest):
     groups = {}
 
     def __init__(self, group, *func_args, **func_kwargs):
+        super(PerformanceComparison, self).__init__(*func_args, **func_kwargs)
         self.group = group
         if group not in self.groups:
             self.groups[group] = []
@@ -68,29 +73,22 @@ class PerformanceComparison(PerformanceTest):
 
     @staticmethod
     def summarize(group, fs=None):
-        tests = PerformanceComparison.groups[group]
-        times = [test.time_avg_seconds for test in tests]
-        # Find the fastest test
-        fastest_time = min(times)
-        index = times.index(fastest_time)
-        fastest_test = tests[index]
-        # Find the slowest test
-        slowest_time = max(times)
-        index = times.index(slowest_time)
-        slowest_test = tests[index]
-
-        time_ratios = [test.time_avg_seconds / fastest_time for test in tests]
-
+        tests = sorted(PerformanceComparison.groups[group], key=lambda t: getattr(t, 'time_avg_seconds'))
         log = StringIO.StringIO()
         log.write('Summary\n')
-        log.write('----------------------------------\n')
-        log.write('Fastest function: \t {} \t {}\n'.format(fastest_test.func.__name__, convert_time_units(fastest_time)))
-        log.write('Slowest function: \t {} \t {}\n'.format(slowest_test.func.__name__, convert_time_units(slowest_time)))
-        log.write('----------------------------------\n')
+
+        fmt = "{0: <20} {1: <20} {2: <20}\n"
+        log.write('{0:-<60} \n'.format(''))
+        log.write(fmt.format('Function Name', 'Time', 'Fraction of fastest'))
+        for t in tests:
+            log.write(fmt.format(t.func.__name__,
+                                 convert_time_units(t.time_avg_seconds),
+                                 "{:.3f}".format(tests[0].time_avg_seconds / t.time_avg_seconds)))
+        log.write('{0:-<60} \n'.format(''))
 
         for test in tests:
             log.write(test.log.getvalue())
-            log.write('----------------------------------\n')
+            log.write('{0:-<60} \n'.format(''))
 
         if fs:
             fs.write(log.getvalue())
