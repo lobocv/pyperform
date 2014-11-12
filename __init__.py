@@ -23,18 +23,19 @@ class PerformanceTest(object):
     timeit_repeat = 3
     timeit_number = 10000
 
-    def __init__(self, *func_args, **func_kwargs):
+    def __init__(self, setup='', *func_args, **func_kwargs):
+        self.setup = setup
         self._func_args = func_args
         self._func_kwargs = func_kwargs
         self.func_src = ''
         self.func = None
-        self.log = log = StringIO.StringIO()
+        self.log = StringIO.StringIO()
         self.time_avg_seconds = None
         
     def __call__(self, func):
         src = inspect.getsource(func)
         self.func = func
-        self.func_src = src[src.index('\n') + 1:]
+        self.func_src = self.setup + '\n' + src[src.index('\n') + 1:]
 
         log = self.log
         log.write(self.func_src)
