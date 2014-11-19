@@ -7,17 +7,17 @@ Using the pyperform decorators, you can easily implement timeit tests to your fu
 
 Example:
 
-'''
+```
 @BenchmarkedFunction(largs=(5, 2, 10))
 def TripleMultiply(a, b, c):
     result = a * b * c
     return result
-'''
+```
 
 This result:
-'''
+```
 TripleMultiply 	 1.344 ms
-'''
+```
 
 Features of pyperform include:
 
