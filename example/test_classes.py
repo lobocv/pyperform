@@ -18,9 +18,11 @@ class MyClass(object):
         for i in xrange(n):
             self.s += str(i)
 
-    @ComparisonBenchmark('String Joining', classname="MyClass", largs=(100,))
-    def do_something2(self, n, *args, **kwargs):
+    @ComparisonBenchmark('String Joining', classname="MyClass", largs=(100,), kwargs={'kwarg1': 'k', 'kwarg2': 5000, 'extra_kwarg': 'Extra kwarg'})
+    def do_something2(self, n, kwarg1='a', kwarg2=123, *args, **kwargs):
+        # print kwarg1, kwarg2, kwargs
         self.s = ''.join(map(str, xrange(n)))
+
 
 
 

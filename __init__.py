@@ -47,6 +47,7 @@ class Benchmark(object):
 
     def __init__(self, setup=None, largs=None, kwargs=None):
         self.setup = setup
+        self.group = None
         if largs is not None and type(largs) is tuple:
             self._args = largs
         else:
@@ -56,7 +57,7 @@ class Benchmark(object):
         self.callable = None
         self._is_function = None
         self.log = StringIO.StringIO()
-        self.time_avg_seconds = None
+        self.time_average_seconds = None
 
     def __call__(self, caller):
         src = inspect.getsource(caller)
@@ -73,10 +74,14 @@ class Benchmark(object):
         indent = len(lines[0]) - len(lines[0].strip(' '))
         src_lines = src.splitlines()
         self._is_bound_function = 'def' in src_lines[1] and 'self' in src_lines[1]
-        # if self._is_bound_function..:
-        #     self.stmt = "{0}(self, *{1}, **{2})".format(caller.__name__, self._args, self._kwargs)
-        # else:
-        self.stmt = "{0}(*{1}, **{2})".format(caller.__name__, self._args, self._kwargs)
+
+        # Create the call statement
+        if self._args and self._kwargs:
+            self.stmt = "{0}(*{1}, **{2})".format(caller.__name__, self._args, self._kwargs)
+        elif self._args:
+            self.stmt = "{0}(*{1})".format(caller.__name__, self._args)
+        elif self._kwargs:
+            self.stmt = "{0}(**{1})".format(caller.__name__, self._kwargs)
 
         setup_src = ''
         for ii, l in enumerate(src_lines):
@@ -91,59 +96,56 @@ class Benchmark(object):
             setup_src = setup
         else:
             setup_src = setup_src
-
+        setup_src += '\n'
         self.setup_src = remove_decorators(setup_src)
+
+    def write_log(self):
+        log = self.log
+        log.write(self.setup_src)
+        if not self._is_bound_function:
+            time_avg = convert_time_units(self.time_average_seconds)
+            log.write("\nAverage time: {0} \n".format(time_avg))
+            # print log.getvalue()
 
     def run_timeit(self, stmt, setup):
         # Create the function call statment as a string
-        # call = "{0}(*{1}, **{2})".format(self.callable.__name__, self._args, self._kwargs)
         _timer = timeit.Timer(stmt=stmt, setup=setup)
         trials = _timer.repeat(self.timeit_repeat, self.timeit_number)
-
-        self.time_avg_seconds = sum(trials) / len(trials)
-
+        self.time_average_seconds = sum(trials) / len(trials)
         # Convert into reasonable time units
-        time_avg = convert_time_units(self.time_avg_seconds)
+        time_avg = convert_time_units(self.time_average_seconds)
 
+        self.write_log()
         return time_avg
 
 class BenchmarkedClass(Benchmark):
     bound_functions = {}
 
     def __init__(self, setup=None, cls_args=None, cls_kwargs=None):
-        self.setup = setup
-        if cls_args is not None and type(cls_args) is tuple:
-            self._args = cls_args
-        else:
-            self._args = (cls_args, )
-        self._kwargs = cls_kwargs.copy() if cls_kwargs is not None else {}
-        self._src = ''
-        self.callable = None
-
+        super(BenchmarkedClass, self).__init__(setup, largs=cls_args, kwargs=cls_kwargs)
 
     def __call__(self, cls):
         super(BenchmarkedClass, self).__call__(cls)
         setup_src = self.setup_src
         setup_src += '\ninstance = {}'.format(self.stmt)
 
+        groups = set()
         for p in self.bound_functions[cls.__name__]:
             stmt = "instance.{}".format(p.stmt)
-            time_avg = self.run_timeit(stmt, setup_src)
-            print time_avg
+            p.run_timeit(stmt, setup_src)
+            if p.group:
+                groups.add(p.group)
 
+        for group in groups:
+            ComparisonBenchmark.summarize(group)
         return cls
+
+
 
 class BenchmarkedFunction(Benchmark):
 
     def __call__(self, caller):
         super(BenchmarkedFunction, self).__call__(caller)
-
-        log = self.log
-        log.write(self.setup_src)
-        if not self._is_bound_function:
-            time_avg = self.run_timeit(self.stmt)
-            log.write("\nAverage time: {0} \n".format(time_avg))
-            print log.getvalue()
 
         return caller
 
@@ -170,7 +172,7 @@ class ComparisonBenchmark(BenchmarkedFunction):
 
     @staticmethod
     def summarize(group, fs=None):
-        tests = sorted(ComparisonBenchmark.groups[group], key=lambda t: getattr(t, 'time_avg_seconds'))
+        tests = sorted(ComparisonBenchmark.groups[group], key=lambda t: getattr(t, 'time_average_seconds'))
         log = StringIO.StringIO()
         log.write('Summary\n')
 
@@ -179,8 +181,8 @@ class ComparisonBenchmark(BenchmarkedFunction):
         log.write(fmt.format('Function Name', 'Time', 'Fraction of fastest'))
         for t in tests:
             log.write(fmt.format(t.callable.__name__,
-                                 convert_time_units(t.time_avg_seconds),
-                                 "{:.3f}".format(tests[0].time_avg_seconds / t.time_avg_seconds)))
+                                 convert_time_units(t.time_average_seconds),
+                                 "{:.3f}".format(tests[0].time_average_seconds / t.time_average_seconds)))
         log.write('{0:-<60} \n'.format(''))
 
         for test in tests:
