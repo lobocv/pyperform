@@ -1,5 +1,10 @@
 __author__ = 'Calvin'
-from pyperform import BenchmarkedClass, ComparisonBenchmark
+from pyperform import BenchmarkedClass, ComparisonBenchmark, Benchmark
+
+# You can enable/disable all the benchmarks
+import pyperform
+pyperform.disable()
+pyperform.enable()
 
 def SomeFunc(cls):
     print 'this is {}'.format(cls.__name__)
@@ -27,7 +32,7 @@ class MyClass(object):
 
 
 
-MyClass(1,2,3)
+MyClass(1,2,3).do_something1(20)
 
 MyClass(1,2346436,3)
 

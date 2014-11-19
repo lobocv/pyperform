@@ -5,6 +5,17 @@ import StringIO
 from types import FunctionType
 from math import log10
 
+def enable():
+    Benchmark.enable = True
+    ComparisonBenchmark.enable = True
+    BenchmarkedFunction.enable = True
+    BenchmarkedClass.enable = True
+
+def disable():
+    Benchmark.enable = False
+    ComparisonBenchmark.enable = False
+    BenchmarkedFunction.enable = False
+    BenchmarkedClass.enable = False
 
 def convert_time_units(t):
     # Convert into reasonable time units
@@ -45,6 +56,7 @@ def remove_decorators(src):
 class Benchmark(object):
     timeit_repeat = 3
     timeit_number = 10000
+    enable = True
 
     def __init__(self, setup=None, largs=None, kwargs=None):
         self.setup = setup
@@ -61,36 +73,38 @@ class Benchmark(object):
         self.time_average_seconds = None
 
     def __call__(self, caller):
-        self.callable = caller
-        self._is_function = isinstance(caller, FunctionType)
+        if self.enable:
+            self.callable = caller
+            self._is_function = isinstance(caller, FunctionType)
 
-        src = globalize_indentation(inspect.getsource(caller))
-        src = remove_decorators(src)
+            src = globalize_indentation(inspect.getsource(caller))
+            src = remove_decorators(src)
 
-        # Determine if the function is bound
-        src_lines = src.splitlines()
-        self._is_bound_function = 'def' in src_lines[0] and 'self' in src_lines[0]
+            # Determine if the function is bound
+            src_lines = src.splitlines()
+            self._is_bound_function = 'def' in src_lines[0] and 'self' in src_lines[0]
 
-        if callable(self.setup):
-            setup_func = inspect.getsource(self.setup)
-            setup_src = setup_func[setup_func.index('\n') + 1:]
-            setup_src = globalize_indentation(setup_src) #'\n'.join([l.strip() for l in setup_src.splitlines()])
-            src = setup_src + '\n' + src
-        else:
-            src = src
-        src += '\n'
+            if callable(self.setup):
+                setup_func = inspect.getsource(self.setup)
+                setup_src = setup_func[setup_func.index('\n') + 1:]
+                setup_src = globalize_indentation(setup_src) #'\n'.join([l.strip() for l in setup_src.splitlines()])
+                src = setup_src + '\n' + src
+            else:
+                src = src
+            src += '\n'
 
-        self.setup_src = remove_decorators(src)
-        self.log.write(self.setup_src)
+            self.setup_src = remove_decorators(src)
+            self.log.write(self.setup_src)
 
-        # Create the call statement
-        if self._args and self._kwargs:
-            self.stmt = "{0}(*{1}, **{2})".format(caller.__name__, self._args, self._kwargs)
-        elif self._args:
-            self.stmt = "{0}(*{1})".format(caller.__name__, self._args)
-        elif self._kwargs:
-            self.stmt = "{0}(**{1})".format(caller.__name__, self._kwargs)
+            # Create the call statement
+            if self._args and self._kwargs:
+                self.stmt = "{0}(*{1}, **{2})".format(caller.__name__, self._args, self._kwargs)
+            elif self._args:
+                self.stmt = "{0}(*{1})".format(caller.__name__, self._args)
+            elif self._kwargs:
+                self.stmt = "{0}(**{1})".format(caller.__name__, self._kwargs)
 
+        return caller
 
     def write_log(self, fs=None):
         log = StringIO.StringIO()
@@ -122,29 +136,31 @@ class BenchmarkedClass(Benchmark):
         super(BenchmarkedClass, self).__init__(setup, largs=cls_args, kwargs=cls_kwargs)
 
     def __call__(self, cls):
-        super(BenchmarkedClass, self).__call__(cls)
-        setup_src = self.setup_src
-        setup_src += '\ninstance = {}'.format(self.stmt)
+        if self.enable:
+            super(BenchmarkedClass, self).__call__(cls)
+            setup_src = self.setup_src
+            setup_src += '\ninstance = {}'.format(self.stmt)
 
-        groups = set()
-        for p in self.bound_functions[cls.__name__]:
-            stmt = "instance.{}".format(p.stmt)
-            p.run_timeit(stmt, setup_src)
-            p.write_log()
-            if p.group:
-                groups.add(p.group)
+            groups = set()
+            for p in self.bound_functions[cls.__name__]:
+                stmt = "instance.{}".format(p.stmt)
+                p.run_timeit(stmt, setup_src)
+                p.write_log()
+                if p.group:
+                    groups.add(p.group)
 
-        for group in groups:
-            _f = open('report.txt', 'w')
-            ComparisonBenchmark.summarize(group, fs=_f)
+            for group in groups:
+                _f = open('report.txt', 'w')
+                ComparisonBenchmark.summarize(group, fs=_f)
         return cls
 
 class BenchmarkedFunction(Benchmark):
 
     def __call__(self, caller):
-        super(BenchmarkedFunction, self).__call__(caller)
-        self.run_timeit(self.stmt, self.setup_src)
-        print "{} \t {}".format(caller.__name__, convert_time_units(self.time_average_seconds))
+        if self.enable:
+            super(BenchmarkedFunction, self).__call__(caller)
+            self.run_timeit(self.stmt, self.setup_src)
+            print "{} \t {}".format(caller.__name__, convert_time_units(self.time_average_seconds))
         return caller
 
 class ComparisonBenchmark(Benchmark):
@@ -158,18 +174,19 @@ class ComparisonBenchmark(Benchmark):
             self.groups[group] = []
 
     def __call__(self, caller):
-        super(ComparisonBenchmark, self).__call__(caller)
-        self.groups[self.group].append(self)
-        # Bound functions are tested in ClassBenchmark.__call__
-        # Just store a reference to the ComparisonBenchmark if the function is bound, otherwise, run the test
-        if self._is_bound_function:
-            try:
-                BenchmarkedClass.bound_functions[self.classname].append(self)
-            except KeyError:
-                BenchmarkedClass.bound_functions[self.classname] = [self]
-        else:
-            # Run the test
-            self.run_timeit(self.stmt, self.setup_src)
+        if self.enable:
+            super(ComparisonBenchmark, self).__call__(caller)
+            self.groups[self.group].append(self)
+            # Bound functions are tested in ClassBenchmark.__call__
+            # Just store a reference to the ComparisonBenchmark if the function is bound, otherwise, run the test
+            if self._is_bound_function:
+                try:
+                    BenchmarkedClass.bound_functions[self.classname].append(self)
+                except KeyError:
+                    BenchmarkedClass.bound_functions[self.classname] = [self]
+            else:
+                # Run the test
+                self.run_timeit(self.stmt, self.setup_src)
 
         return caller
 
