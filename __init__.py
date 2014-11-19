@@ -29,7 +29,7 @@ def globalize_indentation(src):
     for ii, l in enumerate(src.splitlines()):
         line = l[indent:]
         func_src += line + '\n'
-
+    return func_src
 
 def remove_decorators(src):
     # Remove decorators from the source code
@@ -61,20 +61,27 @@ class Benchmark(object):
         self.time_average_seconds = None
 
     def __call__(self, caller):
-        src = inspect.getsource(caller)
         self.callable = caller
         self._is_function = isinstance(caller, FunctionType)
 
-        if self._is_function:
-            setup_src = src[src.index('\n') + 1:]
-        else:
-            setup_src = src
+        src = globalize_indentation(inspect.getsource(caller))
+        src = remove_decorators(src)
 
-        # Strip the indentation level so the code runs in the global scope
-        lines = setup_src.splitlines()
-        indent = len(lines[0]) - len(lines[0].strip(' '))
+        # Determine if the function is bound
         src_lines = src.splitlines()
-        self._is_bound_function = 'def' in src_lines[1] and 'self' in src_lines[1]
+        self._is_bound_function = 'def' in src_lines[0] and 'self' in src_lines[0]
+
+        if callable(self.setup):
+            setup_func = inspect.getsource(self.setup)
+            setup_src = setup_func[setup_func.index('\n') + 1:]
+            setup_src = globalize_indentation(setup_src) #'\n'.join([l.strip() for l in setup_src.splitlines()])
+            src = setup_src + '\n' + src
+        else:
+            src = src
+        src += '\n'
+
+        self.setup_src = remove_decorators(src)
+        self.log.write(self.setup_src)
 
         # Create the call statement
         if self._args and self._kwargs:
@@ -84,22 +91,6 @@ class Benchmark(object):
         elif self._kwargs:
             self.stmt = "{0}(**{1})".format(caller.__name__, self._kwargs)
 
-        setup_src = ''
-        for ii, l in enumerate(src_lines):
-            line = l[indent:]
-            setup_src += line + '\n'
-
-        if callable(self.setup):
-            setup_func = inspect.getsource(self.setup)
-            setup_src = setup_func[setup_func.index('\n') + 1:]
-            setup = '\n'.join([l.strip() for l in setup_src.splitlines()])
-            setup += '\n\n' + setup_src
-            setup_src = setup
-        else:
-            setup_src = setup_src
-        setup_src += '\n'
-        self.setup_src = remove_decorators(setup_src)
-        self.log.write(self.setup_src)
 
     def write_log(self, fs=None):
         log = StringIO.StringIO()
@@ -148,6 +139,13 @@ class BenchmarkedClass(Benchmark):
             ComparisonBenchmark.summarize(group, fs=_f)
         return cls
 
+class BenchmarkedFunction(Benchmark):
+
+    def __call__(self, caller):
+        super(BenchmarkedFunction, self).__call__(caller)
+        self.run_timeit(self.stmt, self.setup_src)
+        print "{} \t {}".format(caller.__name__, convert_time_units(self.time_average_seconds))
+        return caller
 
 class ComparisonBenchmark(Benchmark):
     groups = {}
@@ -180,7 +178,6 @@ class ComparisonBenchmark(Benchmark):
         tests = sorted(ComparisonBenchmark.groups[group], key=lambda t: getattr(t, 'time_average_seconds'))
         log = StringIO.StringIO()
 
-
         fmt = "{0: <30} {1: <20} {2: <20}\n"
         log.write(fmt.format('Function Name', 'Time', 'Fraction of fastest'))
         log.write('{0:-<80} \n'.format(''))
@@ -189,13 +186,15 @@ class ComparisonBenchmark(Benchmark):
             log.write(fmt.format(func_name,
                                  convert_time_units(t.time_average_seconds),
                                  "{:.3f}".format(tests[0].time_average_seconds / t.time_average_seconds)))
+        log.write('\n\nSource Code:\n')
         log.write('{0:-<80} \n'.format(''))
-
         for test in tests:
             log.write(test.log.getvalue())
-            log.write('{0:-<80} \n'.format(''))
+            log.write('\n{0:-<80}\n'.format(''))
 
         if fs:
             fs.write(log.getvalue())
         else:
             print log.getvalue()
+
+

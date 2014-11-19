@@ -1,5 +1,5 @@
 __author__ = 'Calvin'
-from pyperform import ComparisonBenchmark
+from pyperform import ComparisonBenchmark, BenchmarkedFunction
 
 
 @ComparisonBenchmark('Group1', largs=(100,))
@@ -16,6 +16,14 @@ def mytest2(l):
         out += i
 
     return out
+
+def setup():
+    a = 5
+    b = 12
+
+@BenchmarkedFunction(setup=setup, largs=(5, ))
+def mytest3(multiplier):
+    return a * b * multiplier
 
 with open('report.txt', 'w') as f:
     ComparisonBenchmark.summarize('Group1', f)
