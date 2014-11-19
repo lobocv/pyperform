@@ -12,18 +12,15 @@ class MyClass(object):
     def __init__(self, *args, **kwargs):
         self.s = ''
 
-    @ComparisonBenchmark('String Joining', classname="MyClass")
-    def do_something1(self, *args, **kwargs):
-        s = ''
+    @ComparisonBenchmark('String Joining', classname="MyClass", largs=(100,))
+    def do_something1(self, n, *args, **kwargs):
         self.s = ''
-        for i in xrange(100):
+        for i in xrange(n):
             self.s += str(i)
-            # s += str(i)
 
-    @ComparisonBenchmark('String Joining', classname="MyClass")
-    def do_something2(self, *args, **kwargs):
-        self.s = ''.join(map(str, xrange(100)))
-        # s = ''.join(map(str, xrange(100)))
+    @ComparisonBenchmark('String Joining', classname="MyClass", largs=(100,))
+    def do_something2(self, n, *args, **kwargs):
+        self.s = ''.join(map(str, xrange(n)))
 
 
 
