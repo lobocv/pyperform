@@ -17,15 +17,11 @@ def mytest2(l):
 
     return out
 
-def test3_setup():
-    a = 5
-    b = 12
-
-@BenchmarkedFunction(setup=test3_setup, largs=(5, ))
-def mytest3(multiplier):
-    return a * b * multiplier
+@BenchmarkedFunction(largs=(5, 2, 10))
+def TripleMultiply(a, b, c):
+    result = a * b * c
+    return result
 
 with open('report.txt', 'w') as f:
     ComparisonBenchmark.summarize('Group1', f)
 
-mytest3(463)
