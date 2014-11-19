@@ -30,6 +30,7 @@ def globalize_indentation(src):
         line = l[indent:]
         func_src += line + '\n'
 
+
 def remove_decorators(src):
     # Remove decorators from the source code
     src_lines = src.splitlines()
@@ -98,14 +99,20 @@ class Benchmark(object):
             setup_src = setup_src
         setup_src += '\n'
         self.setup_src = remove_decorators(setup_src)
+        self.log.write(self.setup_src)
 
-    def write_log(self):
-        log = self.log
+    def write_log(self, fs=None):
+        log = StringIO.StringIO()
         log.write(self.setup_src)
+
+        # If the function is not bound, write the test score to the log
         if not self._is_bound_function:
             time_avg = convert_time_units(self.time_average_seconds)
             log.write("\nAverage time: {0} \n".format(time_avg))
-            # print log.getvalue()
+
+        if fs:
+            with open(fs, 'w') as _f:
+                _f.write(log.getvalue())
 
     def run_timeit(self, stmt, setup):
         # Create the function call statment as a string
@@ -115,7 +122,6 @@ class Benchmark(object):
         # Convert into reasonable time units
         time_avg = convert_time_units(self.time_average_seconds)
 
-        self.write_log()
         return time_avg
 
 class BenchmarkedClass(Benchmark):
@@ -133,24 +139,17 @@ class BenchmarkedClass(Benchmark):
         for p in self.bound_functions[cls.__name__]:
             stmt = "instance.{}".format(p.stmt)
             p.run_timeit(stmt, setup_src)
+            p.write_log()
             if p.group:
                 groups.add(p.group)
 
         for group in groups:
-            ComparisonBenchmark.summarize(group)
+            _f = open('report.txt', 'w')
+            ComparisonBenchmark.summarize(group, fs=_f)
         return cls
 
 
-
-class BenchmarkedFunction(Benchmark):
-
-    def __call__(self, caller):
-        super(BenchmarkedFunction, self).__call__(caller)
-
-        return caller
-
-
-class ComparisonBenchmark(BenchmarkedFunction):
+class ComparisonBenchmark(Benchmark):
     groups = {}
 
     def __init__(self, group, classname=None, setup=None, *largs, **kwargs):
@@ -163,31 +162,38 @@ class ComparisonBenchmark(BenchmarkedFunction):
     def __call__(self, caller):
         super(ComparisonBenchmark, self).__call__(caller)
         self.groups[self.group].append(self)
+        # Bound functions are tested in ClassBenchmark.__call__
+        # Just store a reference to the ComparisonBenchmark if the function is bound, otherwise, run the test
         if self._is_bound_function:
             try:
                 BenchmarkedClass.bound_functions[self.classname].append(self)
             except KeyError:
                 BenchmarkedClass.bound_functions[self.classname] = [self]
+        else:
+            # Run the test
+            self.run_timeit(self.stmt, self.setup_src)
+
         return caller
 
     @staticmethod
     def summarize(group, fs=None):
         tests = sorted(ComparisonBenchmark.groups[group], key=lambda t: getattr(t, 'time_average_seconds'))
         log = StringIO.StringIO()
-        log.write('Summary\n')
 
-        fmt = "{0: <20} {1: <20} {2: <20}\n"
-        log.write('{0:-<60} \n'.format(''))
+
+        fmt = "{0: <30} {1: <20} {2: <20}\n"
         log.write(fmt.format('Function Name', 'Time', 'Fraction of fastest'))
+        log.write('{0:-<80} \n'.format(''))
         for t in tests:
-            log.write(fmt.format(t.callable.__name__,
+            func_name = "{}.{}".format(t.classname, t.callable.__name__) if t.classname else t.callable.__name__
+            log.write(fmt.format(func_name,
                                  convert_time_units(t.time_average_seconds),
                                  "{:.3f}".format(tests[0].time_average_seconds / t.time_average_seconds)))
-        log.write('{0:-<60} \n'.format(''))
+        log.write('{0:-<80} \n'.format(''))
 
         for test in tests:
             log.write(test.log.getvalue())
-            log.write('{0:-<60} \n'.format(''))
+            log.write('{0:-<80} \n'.format(''))
 
         if fs:
             fs.write(log.getvalue())

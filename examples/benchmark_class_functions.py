@@ -1,5 +1,5 @@
 __author__ = 'Calvin'
-from pyperform import BenchmarkedClass, BenchmarkedFunction, ComparisonBenchmark
+from pyperform import BenchmarkedClass, ComparisonBenchmark
 
 def SomeFunc(cls):
     print 'this is {}'.format(cls.__name__)

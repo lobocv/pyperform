@@ -2,22 +2,14 @@ __author__ = 'Calvin'
 from pyperform import ComparisonBenchmark
 
 
-def setup_func():
-    from test_classes import MyClass
-
-    self = MyClass()
-    self.a = 12
-    self.b = 123
-
-@ComparisonBenchmark('Group1', setup=setup_func, largs=(100,))
+@ComparisonBenchmark('Group1', largs=(100,))
 def mytest(l):
     out = 0.
     for i in xrange(l):
         out += i
-    print self.a
     return out
 
-@ComparisonBenchmark('Group1', setup=setup_func, largs=(100,))
+@ComparisonBenchmark('Group1', largs=(100,))
 def mytest2(l):
     out = 0.
     for i in range(l):
