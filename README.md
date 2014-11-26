@@ -29,6 +29,7 @@ Features of pyperform include:
     - Library of performance tests to learn from.
 
 To do / Potential Features:
+
     - Logging of system information (operating system, CPU frequency etc.)
     - Disassembled code
     - Code revision / performance history
