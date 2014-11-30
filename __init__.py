@@ -5,20 +5,29 @@ import StringIO
 from types import FunctionType
 from math import log10
 
+
 def enable():
+    """
+    Enable all benchmarking.
+    """
     Benchmark.enable = True
     ComparisonBenchmark.enable = True
     BenchmarkedFunction.enable = True
     BenchmarkedClass.enable = True
 
+
 def disable():
+    """
+    Disable all benchmarking.
+    """
     Benchmark.enable = False
     ComparisonBenchmark.enable = False
     BenchmarkedFunction.enable = False
     BenchmarkedClass.enable = False
 
+
 def convert_time_units(t):
-    # Convert into reasonable time units
+    """ Convert time in seconds into reasonable time units. """
     order = log10(t)
     if -6 < order < -3:
         time_units = 'us'
@@ -33,7 +42,7 @@ def convert_time_units(t):
 
 
 def globalize_indentation(src):
-    # Strip the indentation level so the code runs in the global scope
+    """ Strip the indentation level so the code runs in the global scope. """
     lines = src.splitlines()
     indent = len(lines[0]) - len(lines[0].strip(' '))
     func_src = ''
@@ -42,8 +51,9 @@ def globalize_indentation(src):
         func_src += line + '\n'
     return func_src
 
+
 def remove_decorators(src):
-    # Remove decorators from the source code
+    """ Remove decorators from the source code """
     src_lines = src.splitlines()
     for n, line in enumerate(src_lines):
         if 'Benchmark' in line:
@@ -87,7 +97,7 @@ class Benchmark(object):
             if callable(self.setup):
                 setup_func = inspect.getsource(self.setup)
                 setup_src = setup_func[setup_func.index('\n') + 1:]
-                setup_src = globalize_indentation(setup_src) #'\n'.join([l.strip() for l in setup_src.splitlines()])
+                setup_src = globalize_indentation(setup_src)
                 src = setup_src + '\n' + src
             else:
                 src = src
@@ -107,6 +117,10 @@ class Benchmark(object):
         return caller
 
     def write_log(self, fs=None):
+        """
+        Write the results of the benchmark to a log file.
+        :param fs: file-like object.
+        """
         log = StringIO.StringIO()
         log.write(self.setup_src)
 
@@ -120,7 +134,7 @@ class Benchmark(object):
                 _f.write(log.getvalue())
 
     def run_timeit(self, stmt, setup):
-        # Create the function call statment as a string
+        """ Create the function call statement as a string used for timeit. """
         _timer = timeit.Timer(stmt=stmt, setup=setup)
         trials = _timer.repeat(self.timeit_repeat, self.timeit_number)
         self.time_average_seconds = sum(trials) / len(trials)
@@ -128,6 +142,7 @@ class Benchmark(object):
         time_avg = convert_time_units(self.time_average_seconds)
 
         return time_avg
+
 
 class BenchmarkedClass(Benchmark):
     bound_functions = {}
@@ -154,14 +169,15 @@ class BenchmarkedClass(Benchmark):
                 ComparisonBenchmark.summarize(group, fs=_f)
         return cls
 
-class BenchmarkedFunction(Benchmark):
 
+class BenchmarkedFunction(Benchmark):
     def __call__(self, caller):
         if self.enable:
             super(BenchmarkedFunction, self).__call__(caller)
             self.run_timeit(self.stmt, self.setup_src)
             print "{} \t {}".format(caller.__name__, convert_time_units(self.time_average_seconds))
         return caller
+
 
 class ComparisonBenchmark(Benchmark):
     groups = {}
@@ -192,6 +208,11 @@ class ComparisonBenchmark(Benchmark):
 
     @staticmethod
     def summarize(group, fs=None):
+        """
+        Tabulate and write the results of ComparisonBenchmarks to a file or standard out.
+        :param str group: name of the comparison group.
+        :param fs: file-like object (Optional)
+        """
         tests = sorted(ComparisonBenchmark.groups[group], key=lambda t: getattr(t, 'time_average_seconds'))
         log = StringIO.StringIO()
 
