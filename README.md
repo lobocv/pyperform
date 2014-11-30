@@ -33,4 +33,4 @@ To do / Potential Features:
     - Logging of system information (operating system, CPU frequency etc.)
     - Disassembled code
     - Code revision / performance history
-
+    - Function return value validation for ComparisonBenchmarks.

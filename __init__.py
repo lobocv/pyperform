@@ -5,6 +5,7 @@ import StringIO
 from types import FunctionType
 from math import log10
 
+__version__ = '1.1-beta'
 
 def enable():
     """
@@ -68,9 +69,11 @@ class Benchmark(object):
     timeit_number = 10000
     enable = True
 
-    def __init__(self, setup=None, largs=None, kwargs=None):
+    def __init__(self, setup=None, imports='', largs=None, kwargs=None):
         self.setup = setup
+        self.imports = imports
         self.group = None
+        self._is_bound_function = None
         if largs is not None and type(largs) is tuple:
             self._args = largs
         else:
@@ -103,6 +106,7 @@ class Benchmark(object):
                 src = src
             src += '\n'
 
+            src = self.imports + '\n' + src
             self.setup_src = remove_decorators(src)
             self.log.write(self.setup_src)
 
@@ -113,6 +117,8 @@ class Benchmark(object):
                 self.stmt = "{0}(*{1})".format(caller.__name__, self._args)
             elif self._kwargs:
                 self.stmt = "{0}(**{1})".format(caller.__name__, self._kwargs)
+            else:
+                self.stmt = "{0}()".format(caller.__name__)
 
         return caller
 
@@ -147,8 +153,8 @@ class Benchmark(object):
 class BenchmarkedClass(Benchmark):
     bound_functions = {}
 
-    def __init__(self, setup=None, cls_args=None, cls_kwargs=None):
-        super(BenchmarkedClass, self).__init__(setup, largs=cls_args, kwargs=cls_kwargs)
+    def __init__(self, setup=None, cls_args=None, cls_kwargs=None, *args, **kwargs):
+        super(BenchmarkedClass, self).__init__(setup, largs=cls_args, kwargs=cls_kwargs, *args, **kwargs)
 
     def __call__(self, cls):
         if self.enable:

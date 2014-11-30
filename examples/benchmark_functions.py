@@ -1,6 +1,6 @@
 __author__ = 'Calvin'
 from pyperform import ComparisonBenchmark, BenchmarkedFunction
-
+import math
 
 @ComparisonBenchmark('Group1', largs=(100,))
 def mytest(l):
@@ -17,7 +17,7 @@ def mytest2(l):
 
     return out
 
-@BenchmarkedFunction(largs=(5, 2, 10))
+@BenchmarkedFunction(imports='import math', largs=(5, 2, 10))
 def TripleMultiply(a, b, c):
     result = a * b * c
     return result

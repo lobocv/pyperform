@@ -1,39 +1,40 @@
 __author__ = 'Calvin'
-from pyperform import BenchmarkedClass, ComparisonBenchmark, Benchmark
+"""
+This example demonstrates how pyperform can be used to benchmark class functions. In this example we use
+ComparisonBenchmarks to compare the speed of two methods which calculates a person's savings.
 
+** Note that when benchmarking class methods, the classname argument to ComparisonBenchmark must be provided.
+
+The class, Person, is initialized with several required parameters (name, age, monthly_income) and some optional
+parameters (height). The two methods to calculate savings both have a required argument (retirement_age) and an optional
+argument of monthly spending (monthly_spending).
+
+"""
+
+from pyperform import BenchmarkedClass, ComparisonBenchmark
 # You can enable/disable all the benchmarks
-import pyperform
-pyperform.disable()
-pyperform.enable()
 
-def SomeFunc(cls):
-    print 'this is {}'.format(cls.__name__)
-    return cls
+@BenchmarkedClass(cls_args=('Calvin', 24, 1000.,), cls_kwargs={'height': '165 cm'})
+class Person(object):
 
-
-@BenchmarkedClass(cls_args=(1, 2, 3), cls_kwargs={'a': 123})
-class MyClass(object):
-
-    def __init__(self, *args, **kwargs):
-        self.s = ''
-
-    @ComparisonBenchmark('String Joining', classname="MyClass", largs=(100,))
-    def do_something1(self, n, *args, **kwargs):
-        self.s = ''
-        for i in xrange(n):
-            self.s += str(i)
-
-    @ComparisonBenchmark('String Joining', classname="MyClass", largs=(100,), kwargs={'kwarg1': 'k', 'kwarg2': 5000, 'extra_kwarg': 'Extra kwarg'})
-    def do_something2(self, n, kwarg1='a', kwarg2=123, *args, **kwargs):
-        # print kwarg1, kwarg2, kwargs
-        self.s = ''.join(map(str, xrange(n)))
+    def __init__(self, name, age, monthly_income, height=None, *args, **kwargs):
+        self.name = name
+        self.age = age
+        self.height = height
+        self.monthly_income = monthly_income
 
 
+    @ComparisonBenchmark('Calculate Savings', classname="Person", largs=(55,), kwargs={'monthly_spending': 500})
+    def calculate_savings_method1(self, retirement_age, monthly_spending=0, *args, **kwargs):
+        savings = 0
+        for y in xrange(self.age, retirement_age):
+            for m in xrange(12):
+                savings += self.monthly_income - monthly_spending
+        return savings
 
-
-
-MyClass(1,2,3).do_something1(20)
-
-MyClass(1,2346436,3)
-
-MyClass(2241,2,3)
+    @ComparisonBenchmark('Calculate Savings', classname="Person", largs=(55,), kwargs={'monthly_spending': 500})
+    def calculate_savings_method2(self, retirement_age, monthly_spending=0, *args, **kwargs):
+        yearly_income = 12 * (self.monthly_income - monthly_spending)
+        n_years = retirement_age - self.age
+        if n_years > 0:
+            return yearly_income * n_years
