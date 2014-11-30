@@ -12,7 +12,6 @@ argument of monthly spending (monthly_spending).
 """
 
 from pyperform import BenchmarkedClass, ComparisonBenchmark
-# You can enable/disable all the benchmarks
 
 @BenchmarkedClass(cls_args=('Calvin', 24, 1000.,), cls_kwargs={'height': '165 cm'})
 class Person(object):
@@ -38,3 +37,7 @@ class Person(object):
         n_years = retirement_age - self.age
         if n_years > 0:
             return yearly_income * n_years
+
+
+report_file = open('report.txt', 'w')
+ComparisonBenchmark.summarize(group='Calculate Savings', fs=report_file)

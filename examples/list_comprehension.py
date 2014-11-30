@@ -5,7 +5,6 @@ It also demonstrates how to use imported modules in your benchmarks as well as c
 """
 
 from pyperform import ComparisonBenchmark
-import dis
 from math import sin
 
 @ComparisonBenchmark('Group1', imports='from math import sin', largs=(100,))
@@ -22,5 +21,4 @@ def list_comprehension(n, *args, **kwargs):
     return l
 
 
-with open('report.txt', 'w') as f:
-    ComparisonBenchmark.summarize('Group1', f)
+ComparisonBenchmark.summarize('Group1', fs='report.txt')

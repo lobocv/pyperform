@@ -170,9 +170,6 @@ class BenchmarkedClass(Benchmark):
                 if p.group:
                     groups.add(p.group)
 
-            for group in groups:
-                _f = open('report.txt', 'w')
-                ComparisonBenchmark.summarize(group, fs=_f)
         return cls
 
 
@@ -236,9 +233,14 @@ class ComparisonBenchmark(Benchmark):
             log.write(test.log.getvalue())
             log.write('\n{0:-<80}\n'.format(''))
 
-        if fs:
-            fs.write(log.getvalue())
-        else:
+        if isinstance(fs, str):
+            with open(fs, 'w') as f:
+                f.write(log.getvalue())
+        elif fs is None:
             print log.getvalue()
-
+        else:
+            try:
+                fs.write(log.getvalue())
+            except AttributeError as e:
+                print e
 
