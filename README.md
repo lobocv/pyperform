@@ -14,7 +14,7 @@ def TripleMultiply(a, b, c):
     return result
 ```
 
-This result:
+The result:
 ```
 TripleMultiply 	 1.344 ms
 ```
@@ -23,6 +23,7 @@ Features of pyperform include:
 
     - Quick, easy to implement in-code performance tests.
     - Speed comparison of several functions.
+    - Validation of results between ComparisonBenchmarks
     - Summary reports.
     - Supports class functions as well as global functions.
     - Performance tests can easily be disabled/enabled globally.
@@ -31,6 +32,4 @@ Features of pyperform include:
 To do / Potential Features:
 
     - Logging of system information (operating system, CPU frequency etc.)
-    - Disassembled code
     - Code revision / performance history
-    - Function return value validation for ComparisonBenchmarks.

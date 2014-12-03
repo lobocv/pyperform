@@ -7,6 +7,7 @@ from math import log10
 
 __version__ = '1.1-beta'
 
+
 def enable():
     """
     Enable all benchmarking.
@@ -185,10 +186,11 @@ class BenchmarkedFunction(Benchmark):
 class ComparisonBenchmark(Benchmark):
     groups = {}
 
-    def __init__(self, group, classname=None, setup=None, *largs, **kwargs):
+    def __init__(self, group, classname=None, setup=None, validation=False, *largs, **kwargs):
         super(ComparisonBenchmark, self).__init__(setup=setup, *largs, **kwargs)
         self.group = group
         self.classname = classname
+        self.result_validation = validation
         if group not in self.groups:
             self.groups[group] = []
 
@@ -207,6 +209,27 @@ class ComparisonBenchmark(Benchmark):
                 # Run the test
                 self.run_timeit(self.stmt, self.setup_src)
 
+            if self.result_validation and not self._is_bound_function:
+                # Execute the code once to get it's results (to be used in function validation)
+                validation_code = self.setup_src + '\nvalidation_result = ' + self.stmt
+                validation_scope = {}
+                exec (validation_code, validation_scope)
+                # Store the result in the first function in the group.
+                if len(self.groups[self.group]) == 1:
+                    self.result = validation_scope['validation_result']
+                else:
+                    compare_against = self.groups[self.group][0]
+                    test = [benchmark.result_validation for benchmark in self.groups[self.group]]
+                    if not all(test):
+                        raise ValueError('All functions within a group must have the same validation flag.')
+                    compare_result = compare_against.result
+                    if compare_result != validation_scope['validation_result']:
+                        error = 'Results of functions {0} and {1} are not equivalent.\n{0}:\t {2}\n{1}:\t{3}'
+                        raise ValueError(error.format(compare_against.callable.__name__, self.callable.__name__,
+                                                      compare_result, validation_scope['validation_result']))
+
+
+
         return caller
 
     @staticmethod
@@ -222,6 +245,7 @@ class ComparisonBenchmark(Benchmark):
         fmt = "{0: <30} {1: <20} {2: <20}\n"
         log.write(fmt.format('Function Name', 'Time', 'Fraction of fastest'))
         log.write('{0:-<80} \n'.format(''))
+
         for t in tests:
             func_name = "{}.{}".format(t.classname, t.callable.__name__) if t.classname else t.callable.__name__
             log.write(fmt.format(func_name,
