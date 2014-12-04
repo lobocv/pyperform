@@ -2,12 +2,12 @@ __author__ = 'Calvin'
 import inspect
 import timeit
 import StringIO
+import logging
 from types import FunctionType
 from math import log10
 
 __version__ = '1.1-beta'
-
-
+logging.getLogger().setLevel(logging.INFO)
 def enable():
     """
     Enable all benchmarking.
@@ -67,7 +67,7 @@ def remove_decorators(src):
 
 class Benchmark(object):
     timeit_repeat = 3
-    timeit_number = 10000
+    timeit_number = 10
     enable = True
 
     def __init__(self, setup=None, imports='', largs=None, kwargs=None):
@@ -165,14 +165,39 @@ class BenchmarkedClass(Benchmark):
 
             groups = set()
             for p in self.bound_functions[cls.__name__]:
-                stmt = "instance.{}".format(p.stmt)
+                stmt = p.stmt
                 p.run_timeit(stmt, setup_src)
                 p.write_log()
-                if p.group:
-                    groups.add(p.group)
+                if p.result_validation and p.group not in groups:
+                    self.validate(p.groups[p.group])
+                groups.add(p.group)
 
         return cls
 
+
+    def validate(self, benchmarks):
+        # Execute the code once to get it's results (to be used in function validation)
+        class_code = self.setup_src
+        instance_creation = '\ninstance = {}'.format(self.stmt)
+        for i, benchmark in enumerate(benchmarks):
+            if not benchmark.result_validation:
+                break
+
+            validation_code = class_code + instance_creation + '\nvalidation_result = ' + benchmark.stmt
+            validation_scope = {}
+            exec (validation_code, validation_scope)
+            # Store the result in the first function in the group.
+            if i == 0:
+                compare_against_function = benchmarks[0].callable.__name__
+                compare_against_result = validation_scope['validation_result']
+            else:
+                if compare_against_result == validation_scope['validation_result']:
+                    logging.info('Validating {} against {}......PASSED!'.format(benchmark.callable.__name__,
+                                                                                compare_against_function))
+                else:
+                    error = 'Results of functions {0} and {1} are not equivalent.\n{0}:\t {2}\n{1}:\t{3}'
+                    logging.info(error.format(compare_against_function, benchmark.callable.__name__,
+                                              compare_against_result, validation_scope['validation_result']))
 
 class BenchmarkedFunction(Benchmark):
     def __call__(self, caller):
@@ -194,6 +219,8 @@ class ComparisonBenchmark(Benchmark):
         if group not in self.groups:
             self.groups[group] = []
 
+
+
     def __call__(self, caller):
         if self.enable:
             super(ComparisonBenchmark, self).__call__(caller)
@@ -205,32 +232,38 @@ class ComparisonBenchmark(Benchmark):
                     BenchmarkedClass.bound_functions[self.classname].append(self)
                 except KeyError:
                     BenchmarkedClass.bound_functions[self.classname] = [self]
+                self.stmt = 'instance.' + self.stmt
             else:
                 # Run the test
                 self.run_timeit(self.stmt, self.setup_src)
 
-            if self.result_validation and not self._is_bound_function:
-                # Execute the code once to get it's results (to be used in function validation)
-                validation_code = self.setup_src + '\nvalidation_result = ' + self.stmt
-                validation_scope = {}
-                exec (validation_code, validation_scope)
-                # Store the result in the first function in the group.
-                if len(self.groups[self.group]) == 1:
-                    self.result = validation_scope['validation_result']
-                else:
-                    compare_against = self.groups[self.group][0]
-                    test = [benchmark.result_validation for benchmark in self.groups[self.group]]
-                    if not all(test):
-                        raise ValueError('All functions within a group must have the same validation flag.')
-                    compare_result = compare_against.result
-                    if compare_result != validation_scope['validation_result']:
-                        error = 'Results of functions {0} and {1} are not equivalent.\n{0}:\t {2}\n{1}:\t{3}'
-                        raise ValueError(error.format(compare_against.callable.__name__, self.callable.__name__,
-                                                      compare_result, validation_scope['validation_result']))
-
+                if self.result_validation:
+                    self.validate()
 
 
         return caller
+
+    def validate(self):
+        # Execute the code once to get it's results (to be used in function validation)
+        validation_code = self.setup_src + '\nvalidation_result = ' + self.stmt
+        validation_scope = {}
+        exec (validation_code, validation_scope)
+        # Store the result in the first function in the group.
+        if len(self.groups[self.group]) == 1:
+            self.result = validation_scope['validation_result']
+        else:
+            compare_against = self.groups[self.group][0]
+            test = [benchmark.result_validation for benchmark in self.groups[self.group]]
+            if not all(test):
+                raise ValueError('All functions within a group must have the same validation flag.')
+            compare_result = compare_against.result
+            if compare_result == validation_scope['validation_result']:
+                logging.info('Validating {}......PASSED!'.format(benchmark.callable.__name__))
+            else:
+                error = 'Results of functions {0} and {1} are not equivalent.\n{0}:\t {2}\n{1}:\t{3}'
+                logging.info(error.format(compare_against.callable.__name__, self.callable.__name__,
+                                              compare_result, validation_scope['validation_result']))
+
 
     @staticmethod
     def summarize(group, fs=None):
