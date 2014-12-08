@@ -5,7 +5,7 @@ import math
 @ComparisonBenchmark('Group1', largs=(100,))
 def mytest(l):
     out = 0.
-    for i in xrange(l):
+    for i in range(l):
         out += i
     return out
 

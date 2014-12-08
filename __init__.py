@@ -1,13 +1,20 @@
-__author__ = 'Calvin'
+from __future__ import print_function
+
 import inspect
 import timeit
-import StringIO
+import sys
+
 import logging
 from types import FunctionType
 from math import log10
-
-__version__ = '1.1-beta'
+if sys.version[0] == '3':
+    import io as StringIO
+else:
+    import StringIO
+__version__ = '1.2-beta'
 logging.getLogger().setLevel(logging.INFO)
+
+
 def enable():
     """
     Enable all benchmarking.
@@ -204,7 +211,7 @@ class BenchmarkedFunction(Benchmark):
         if self.enable:
             super(BenchmarkedFunction, self).__call__(caller)
             self.run_timeit(self.stmt, self.setup_src)
-            print "{} \t {}".format(caller.__name__, convert_time_units(self.time_average_seconds))
+            print("{} \t {}".format(caller.__name__, convert_time_units(self.time_average_seconds)))
         return caller
 
 
@@ -294,10 +301,10 @@ class ComparisonBenchmark(Benchmark):
             with open(fs, 'w') as f:
                 f.write(log.getvalue())
         elif fs is None:
-            print log.getvalue()
+            print(log.getvalue())
         else:
             try:
                 fs.write(log.getvalue())
             except AttributeError as e:
-                print e
+                print(e)
 

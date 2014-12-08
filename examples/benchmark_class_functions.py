@@ -26,8 +26,8 @@ class Person(object):
     @ComparisonBenchmark('Calculate Savings', classname="Person", validation=True, largs=(55,), kwargs={'monthly_spending': 500})
     def calculate_savings_method1(self, retirement_age, monthly_spending=0, *args, **kwargs):
         savings = 0
-        for y in xrange(self.age, retirement_age):
-            for m in xrange(12):
+        for y in range(self.age, retirement_age):
+            for m in range(12):
                 savings += self.monthly_income - monthly_spending
         return savings
 
