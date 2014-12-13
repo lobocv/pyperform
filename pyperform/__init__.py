@@ -7,11 +7,12 @@ import sys
 import logging
 from types import FunctionType
 from math import log10
+
 if sys.version[0] == '3':
     import io as StringIO
 else:
     import StringIO
-__version__ = '1.2-beta'
+__version__ = '1.3'
 logging.getLogger().setLevel(logging.INFO)
 
 
@@ -206,6 +207,7 @@ class BenchmarkedClass(Benchmark):
                     logging.info(error.format(compare_against_function, benchmark.callable.__name__,
                                               compare_against_result, validation_scope['validation_result']))
 
+
 class BenchmarkedFunction(Benchmark):
     def __call__(self, caller):
         if self.enable:
@@ -227,7 +229,6 @@ class ComparisonBenchmark(Benchmark):
             self.groups[group] = []
 
 
-
     def __call__(self, caller):
         if self.enable:
             super(ComparisonBenchmark, self).__call__(caller)
@@ -246,7 +247,6 @@ class ComparisonBenchmark(Benchmark):
 
                 if self.result_validation:
                     self.validate()
-
 
         return caller
 
@@ -269,7 +269,7 @@ class ComparisonBenchmark(Benchmark):
             else:
                 error = 'Results of functions {0} and {1} are not equivalent.\n{0}:\t {2}\n{1}:\t{3}'
                 logging.info(error.format(compare_against.callable.__name__, self.callable.__name__,
-                                              compare_result, validation_scope['validation_result']))
+                                          compare_result, validation_scope['validation_result']))
 
 
     @staticmethod
