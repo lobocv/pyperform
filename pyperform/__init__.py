@@ -12,7 +12,7 @@ if sys.version[0] == '3':
     import io as StringIO
 else:
     import StringIO
-__version__ = '1.3'
+__version__ = '1.4'
 logging.getLogger().setLevel(logging.INFO)
 
 
@@ -64,6 +64,7 @@ def globalize_indentation(src):
 
 def remove_decorators(src):
     """ Remove decorators from the source code """
+    src = src.strip()
     src_lines = src.splitlines()
     for n, line in enumerate(src_lines):
         if 'Benchmark' in line:
@@ -74,13 +75,13 @@ def remove_decorators(src):
 
 
 class Benchmark(object):
-    timeit_repeat = 3
-    timeit_number = 10
     enable = True
 
-    def __init__(self, setup=None, imports='', largs=None, kwargs=None):
+    def __init__(self, setup=None, imports='', timeit_repeat=3, timeit_number=1000, largs=None, kwargs=None):
         self.setup = setup
         self.imports = imports
+        self.timeit_repeat = timeit_repeat
+        self.timeit_number = timeit_number
         self.group = None
         self._is_bound_function = None
         if largs is not None and type(largs) is tuple:
@@ -116,7 +117,7 @@ class Benchmark(object):
             src += '\n'
 
             src = self.imports + '\n' + src
-            self.setup_src = remove_decorators(src)
+            self.setup_src = remove_decorators(src) + '\n'
             self.log.write(self.setup_src)
 
             # Create the call statement
@@ -152,7 +153,7 @@ class Benchmark(object):
         """ Create the function call statement as a string used for timeit. """
         _timer = timeit.Timer(stmt=stmt, setup=setup)
         trials = _timer.repeat(self.timeit_repeat, self.timeit_number)
-        self.time_average_seconds = sum(trials) / len(trials)
+        self.time_average_seconds = sum(trials) / len(trials) / self.timeit_number
         # Convert into reasonable time units
         time_avg = convert_time_units(self.time_average_seconds)
 
@@ -279,23 +280,35 @@ class ComparisonBenchmark(Benchmark):
         :param str group: name of the comparison group.
         :param fs: file-like object (Optional)
         """
+        _line_break = '{0:-<100}'.format('')
         tests = sorted(ComparisonBenchmark.groups[group], key=lambda t: getattr(t, 'time_average_seconds'))
         log = StringIO.StringIO()
+        log.write('List Arguments: {}\n'.format(*tests[0]._args))
+        kwargs = ["{} = {}".format(k, v) for k, v in tests[0]._kwargs.iteritems()]
+        log.write('Keyword Arguments: %s' % ','.join(kwargs))
+        log.write('\n\n\n')
+        fmt = "{0: <35} {1: <12} {2: <15} {3: <15} {4: <14}\n"
+        log.write(fmt.format('Function Name', 'Time', '% of Fastest', 'timeit_repeat', 'timeit_number'))
+        log.write(_line_break)
+        log.write('\n')
 
-        fmt = "{0: <30} {1: <20} {2: <20}\n"
-        log.write(fmt.format('Function Name', 'Time', 'Fraction of fastest'))
-        log.write('{0:-<80} \n'.format(''))
+
 
         for t in tests:
             func_name = "{}.{}".format(t.classname, t.callable.__name__) if t.classname else t.callable.__name__
             log.write(fmt.format(func_name,
                                  convert_time_units(t.time_average_seconds),
-                                 "{:.3f}".format(tests[0].time_average_seconds / t.time_average_seconds)))
-        log.write('\n\nSource Code:\n')
-        log.write('{0:-<80} \n'.format(''))
+                                 "{:.1f}".format(tests[0].time_average_seconds / t.time_average_seconds * 100),
+                                 t.timeit_repeat,
+                                 t.timeit_number))
+        log.write(_line_break)
+
+        log.write('\n\n\nSource Code:\n')
+        log.write(_line_break)
+        log.write('\n')
         for test in tests:
             log.write(test.log.getvalue())
-            log.write('\n{0:-<80}\n'.format(''))
+            log.write('\n')
 
         if isinstance(fs, str):
             with open(fs, 'w') as f:
