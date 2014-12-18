@@ -5,9 +5,10 @@ It also demonstrates how to use imported modules in your benchmarks as well as c
 """
 
 from pyperform import ComparisonBenchmark
-from math import sin
+from math import sin  #!
+sd=3
 
-@ComparisonBenchmark('Group1', validation=True, imports='from math import sin', largs=(100,))
+@ComparisonBenchmark('Group1', validation=True, largs=(100,))
 def list_append(n, *args, **kwargs):
     l = []
     for i in xrange(1, n):
@@ -15,7 +16,7 @@ def list_append(n, *args, **kwargs):
     return l
 
 
-@ComparisonBenchmark('Group1', validation=True, imports='from math import sin', largs=(100,))
+@ComparisonBenchmark('Group1', validation=True, largs=(100,))
 def list_comprehension(n, *args, **kwargs):
     l = [sin(i) for i in xrange(1, n)]
     return l

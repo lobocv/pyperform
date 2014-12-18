@@ -73,13 +73,17 @@ def remove_decorators(src):
 
     return setup_src
 
+def get_tagged_imports(fp):
+    with open(fp, 'r') as f:
+        imports = [l[:l.index('#!')] for l in f if "#!" in l and (l.startswith('import') or l.startswith('from'))]
+    src = '\n'.join(imports)
+    return src
 
 class Benchmark(object):
     enable = True
 
-    def __init__(self, setup=None, imports='', timeit_repeat=3, timeit_number=1000, largs=None, kwargs=None):
+    def __init__(self, setup=None, timeit_repeat=3, timeit_number=1000, largs=None, kwargs=None):
         self.setup = setup
-        self.imports = imports
         self.timeit_repeat = timeit_repeat
         self.timeit_number = timeit_number
         self.group = None
@@ -100,23 +104,21 @@ class Benchmark(object):
             self.callable = caller
             self._is_function = isinstance(caller, FunctionType)
 
-            src = globalize_indentation(inspect.getsource(caller))
-            src = remove_decorators(src)
+            fp = inspect.getfile(caller)
+            imports = get_tagged_imports(fp)
+            func_src = remove_decorators(globalize_indentation(inspect.getsource(caller)))
 
             # Determine if the function is bound
-            src_lines = src.splitlines()
+            src_lines = func_src.splitlines()
             self._is_bound_function = 'def' in src_lines[0] and 'self' in src_lines[0]
 
             if callable(self.setup):
                 setup_func = inspect.getsource(self.setup)
-                setup_src = setup_func[setup_func.index('\n') + 1:]
-                setup_src = globalize_indentation(setup_src)
-                src = setup_src + '\n' + src
+                setup_src = globalize_indentation(setup_func[setup_func.index('\n') + 1:])
             else:
-                src = src
-            src += '\n'
+                setup_src = ''
 
-            src = self.imports + '\n' + src
+            src = '\n'.join([imports, setup_src, func_src])
             self.setup_src = remove_decorators(src) + '\n'
             self.log.write(self.setup_src)
 
@@ -308,11 +310,13 @@ class ComparisonBenchmark(Benchmark):
         log.write('\n')
         for test in tests:
             log.write(test.log.getvalue())
+            log.write(_line_break)
             log.write('\n')
 
         if isinstance(fs, str):
             with open(fs, 'w') as f:
                 f.write(log.getvalue())
+
         elif fs is None:
             print(log.getvalue())
         else:
