@@ -66,18 +66,38 @@ def remove_decorators(src):
     """ Remove decorators from the source code """
     src = src.strip()
     src_lines = src.splitlines()
-    for n, line in enumerate(src_lines):
-        if 'Benchmark' in line:
-            del src_lines[n]
+    multi_line = False
+    n_deleted = 0
+    for n in xrange(len(src_lines)):
+        line = src_lines[n - n_deleted].strip()
+        if 'Benchmark' in line or multi_line:
+            del src_lines[n-n_deleted]
+            n_deleted += 1
+            if line.endswith(')'):
+                multi_line = False
+            else:
+                multi_line = True
     setup_src = '\n'.join(src_lines)
-
     return setup_src
+
 
 def get_tagged_imports(fp):
     with open(fp, 'r') as f:
         imports = [l[:l.index('#!')] for l in f if "#!" in l and (l.startswith('import') or l.startswith('from'))]
     src = '\n'.join(imports)
     return src
+
+
+def generate_call_statement(func, *args, **kwargs):
+    # Create the call statement
+    stmt = func.__name__ + '('
+    for arg in args:
+        stmt += arg.__repr__() + ', '
+    for kw, val in kwargs.iteritems():
+        stmt += '{0}={1}, '.format(kw, val.__repr__())
+    stmt = stmt. strip(', ')
+    stmt += ')'
+    return stmt
 
 class Benchmark(object):
     enable = True
@@ -122,15 +142,8 @@ class Benchmark(object):
             self.setup_src = remove_decorators(src) + '\n'
             self.log.write(self.setup_src)
 
-            # Create the call statement
-            if self._args and self._kwargs:
-                self.stmt = "{0}(*{1}, **{2})".format(caller.__name__, self._args, self._kwargs)
-            elif self._args:
-                self.stmt = "{0}(*{1})".format(caller.__name__, self._args)
-            elif self._kwargs:
-                self.stmt = "{0}(**{1})".format(caller.__name__, self._kwargs)
-            else:
-                self.stmt = "{0}()".format(caller.__name__)
+            self.stmt = generate_call_statement(caller, *self._args, **self._kwargs)
+
 
         return caller
 
@@ -282,19 +295,16 @@ class ComparisonBenchmark(Benchmark):
         :param str group: name of the comparison group.
         :param fs: file-like object (Optional)
         """
-        _line_break = '{0:-<100}'.format('')
+        _line_break = '{0:-<100}\n'.format('')
         tests = sorted(ComparisonBenchmark.groups[group], key=lambda t: getattr(t, 'time_average_seconds'))
         log = StringIO.StringIO()
-        log.write('List Arguments: {}\n'.format(*tests[0]._args))
-        kwargs = ["{} = {}".format(k, v) for k, v in tests[0]._kwargs.iteritems()]
-        log.write('Keyword Arguments: %s' % ','.join(kwargs))
+        log.write('Call statement:\n\n')
+        log.write('\t' + tests[0].stmt)
         log.write('\n\n\n')
         fmt = "{0: <35} {1: <12} {2: <15} {3: <15} {4: <14}\n"
         log.write(fmt.format('Function Name', 'Time', '% of Fastest', 'timeit_repeat', 'timeit_number'))
         log.write(_line_break)
         log.write('\n')
-
-
 
         for t in tests:
             func_name = "{}.{}".format(t.classname, t.callable.__name__) if t.classname else t.callable.__name__
@@ -307,11 +317,9 @@ class ComparisonBenchmark(Benchmark):
 
         log.write('\n\n\nSource Code:\n')
         log.write(_line_break)
-        log.write('\n')
         for test in tests:
             log.write(test.log.getvalue())
             log.write(_line_break)
-            log.write('\n')
 
         if isinstance(fs, str):
             with open(fs, 'w') as f:
