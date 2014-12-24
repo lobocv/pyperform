@@ -109,7 +109,7 @@ class Benchmark(object):
         self.group = None
         self._is_bound_function = None
         if largs is not None and type(largs) is tuple:
-            self._args = largs
+            self._args = largs[:]
         else:
             self._args = ()
         self._kwargs = kwargs.copy() if kwargs is not None else {}
