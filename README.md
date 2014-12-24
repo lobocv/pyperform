@@ -22,7 +22,7 @@ Usage
 
 To use pyperform to benchmark functions, you need to add one of the following decorators:
 
-    @BenchmarkedFunction(setup=None, timeit_repeat=3, timeit_number=1000, largs=None, kwargs=None)
+    @BenchmarkedFunction(setup=None, classname=None, timeit_repeat=3, timeit_number=1000, largs=None, kwargs=None)
     
     @BenchmarkedClass(setup=None, timeit_repeat=3, timeit_number=1000, largs=None, kwargs=None)
     
