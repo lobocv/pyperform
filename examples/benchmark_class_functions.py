@@ -11,7 +11,7 @@ argument of monthly spending (monthly_spending).
 
 """
 
-from pyperform import BenchmarkedClass, ComparisonBenchmark
+from pyperform import BenchmarkedClass, ComparisonBenchmark, BenchmarkedFunction
 
 @BenchmarkedClass(cls_args=('Calvin', 24, 1000.,), cls_kwargs={'height': '165 cm'})
 class Person(object):
@@ -25,7 +25,7 @@ class Person(object):
 
     @ComparisonBenchmark('Calculate Savings', classname="Person", timeit_number=100, validation=True, largs=(55,),
                          kwargs={'monthly_spending': 500})
-    def calculate_savings_method1(self, retirement_age, monthly_spending=0, *args, **kwargs):
+    def calculate_savings_method1(self, retirement_age, monthly_spending=0):
         savings = 0
         for y in range(self.age, retirement_age):
             for m in range(12):
@@ -34,7 +34,14 @@ class Person(object):
 
     @ComparisonBenchmark('Calculate Savings', classname="Person", timeit_number=100, validation=True, largs=(55,),
                          kwargs={'monthly_spending': 500})
-    def calculate_savings_method2(self, retirement_age, monthly_spending=0, *args, **kwargs):
+    def calculate_savings_method2(self, retirement_age, monthly_spending=0):
+        yearly_income = 12 * (self.monthly_income - monthly_spending)
+        n_years = retirement_age - self.age
+        if n_years > 0:
+            return yearly_income * n_years
+
+    @BenchmarkedFunction(classname="Person", timeit_number=100, largs=(55,), kwargs={'monthly_spending': 500})
+    def same_as_method_2(self, retirement_age, monthly_spending=0):
         yearly_income = 12 * (self.monthly_income - monthly_spending)
         n_years = retirement_age - self.age
         if n_years > 0:

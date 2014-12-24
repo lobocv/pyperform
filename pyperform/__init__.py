@@ -12,8 +12,10 @@ if sys.version[0] == '3':
     import io as StringIO
 else:
     import StringIO
-__version__ = '1.4'
+__version__ = '1.5'
 logging.getLogger().setLevel(logging.INFO)
+
+_import_tag = '#!'
 
 
 def enable():
@@ -36,10 +38,18 @@ def disable():
     BenchmarkedClass.enable = False
 
 
+def set_import_tag(tag):
+    if type(tag) == str:
+        globals()['_import_tag'] = tag
+
+
 def convert_time_units(t):
     """ Convert time in seconds into reasonable time units. """
     order = log10(t)
-    if -6 < order < -3:
+    if -9 < order < -6:
+        time_units = 'ns'
+        factor = 1000000000
+    elif -6 < order < -3:
         time_units = 'us'
         factor = 1000000
     elif -3 <= order < -1:
@@ -71,7 +81,7 @@ def remove_decorators(src):
     for n in xrange(len(src_lines)):
         line = src_lines[n - n_deleted].strip()
         if 'Benchmark' in line or multi_line:
-            del src_lines[n-n_deleted]
+            del src_lines[n - n_deleted]
             n_deleted += 1
             if line.endswith(')'):
                 multi_line = False
@@ -81,33 +91,41 @@ def remove_decorators(src):
     return setup_src
 
 
-def get_tagged_imports(fp):
+def get_tagged_imports(fp, tag):
     with open(fp, 'r') as f:
-        imports = [l[:l.index('#!')] for l in f if "#!" in l and (l.startswith('import') or l.startswith('from'))]
+        imports = [l[:l.index(tag)] for l in f if tag in l and (l.startswith('import') or l.startswith('from'))]
     src = '\n'.join(imports)
     return src
 
 
-def generate_call_statement(func, *args, **kwargs):
+def generate_call_statement(func, is_class_method, *args, **kwargs):
     # Create the call statement
-    stmt = func.__name__ + '('
+    if is_class_method:
+        stmt = 'instance.' + func.__name__ + '('
+    else:
+        stmt = func.__name__ + '('
     for arg in args:
         stmt += arg.__repr__() + ', '
     for kw, val in kwargs.iteritems():
         stmt += '{0}={1}, '.format(kw, val.__repr__())
-    stmt = stmt. strip(', ')
+    stmt = stmt.strip(', ')
     stmt += ')'
     return stmt
+
+
+class ValidationError(Exception):
+    pass
 
 class Benchmark(object):
     enable = True
 
-    def __init__(self, setup=None, timeit_repeat=3, timeit_number=1000, largs=None, kwargs=None):
+    def __init__(self, setup=None, classname=None, timeit_repeat=3, timeit_number=1000, largs=None, kwargs=None):
         self.setup = setup
         self.timeit_repeat = timeit_repeat
         self.timeit_number = timeit_number
+        self.classname = classname
         self.group = None
-        self._is_bound_function = None
+        self.is_class_method = None
         if largs is not None and type(largs) is tuple:
             self._args = largs[:]
         else:
@@ -125,16 +143,24 @@ class Benchmark(object):
             self._is_function = isinstance(caller, FunctionType)
 
             fp = inspect.getfile(caller)
-            imports = get_tagged_imports(fp)
+            imports = get_tagged_imports(fp, _import_tag)
             func_src = remove_decorators(globalize_indentation(inspect.getsource(caller)))
 
-            # Determine if the function is bound
+            # Determine if the function is bound. If it is, keep track of it so we can run the benchmark after the class
+            # benchmark has been initialized.
             src_lines = func_src.splitlines()
-            self._is_bound_function = 'def' in src_lines[0] and 'self' in src_lines[0]
+            self.is_class_method = 'def' in src_lines[0] and 'self' in src_lines[0]
+            if self.is_class_method and self.classname:
+                try:
+                    BenchmarkedClass.bound_functions[self.classname].append(self)
+                except KeyError:
+                    BenchmarkedClass.bound_functions[self.classname] = [self]
 
             if callable(self.setup):
                 setup_func = inspect.getsource(self.setup)
                 setup_src = globalize_indentation(setup_func[setup_func.index('\n') + 1:])
+            elif type(self.setup) == str:
+                setup_src = self.setup
             else:
                 setup_src = ''
 
@@ -142,8 +168,7 @@ class Benchmark(object):
             self.setup_src = remove_decorators(src) + '\n'
             self.log.write(self.setup_src)
 
-            self.stmt = generate_call_statement(caller, *self._args, **self._kwargs)
-
+            self.stmt = generate_call_statement(caller, self.is_class_method, *self._args, **self._kwargs)
 
         return caller
 
@@ -156,7 +181,7 @@ class Benchmark(object):
         log.write(self.setup_src)
 
         # If the function is not bound, write the test score to the log
-        if not self._is_bound_function:
+        if not self.is_class_method:
             time_avg = convert_time_units(self.time_average_seconds)
             log.write("\nAverage time: {0} \n".format(time_avg))
 
@@ -171,7 +196,6 @@ class Benchmark(object):
         self.time_average_seconds = sum(trials) / len(trials) / self.timeit_number
         # Convert into reasonable time units
         time_avg = convert_time_units(self.time_average_seconds)
-
         return time_avg
 
 
@@ -192,7 +216,9 @@ class BenchmarkedClass(Benchmark):
                 stmt = p.stmt
                 p.run_timeit(stmt, setup_src)
                 p.write_log()
-                if p.result_validation and p.group not in groups:
+                if isinstance(p, BenchmarkedFunction):
+                    print("{} \t {}".format(p.callable.__name__, convert_time_units(p.time_average_seconds)))
+                if hasattr(p, 'result_validation') and p.result_validation and p.group not in groups:
                     self.validate(p.groups[p.group])
                 groups.add(p.group)
 
@@ -220,7 +246,7 @@ class BenchmarkedClass(Benchmark):
                                                                                 compare_against_function))
                 else:
                     error = 'Results of functions {0} and {1} are not equivalent.\n{0}:\t {2}\n{1}:\t{3}'
-                    logging.info(error.format(compare_against_function, benchmark.callable.__name__,
+                    raise ValidationError(error.format(compare_against_function, benchmark.callable.__name__,
                                               compare_against_result, validation_scope['validation_result']))
 
 
@@ -228,8 +254,9 @@ class BenchmarkedFunction(Benchmark):
     def __call__(self, caller):
         if self.enable:
             super(BenchmarkedFunction, self).__call__(caller)
-            self.run_timeit(self.stmt, self.setup_src)
-            print("{} \t {}".format(caller.__name__, convert_time_units(self.time_average_seconds)))
+            if not self.is_class_method:
+                self.run_timeit(self.stmt, self.setup_src)
+                print("{} \t {}".format(caller.__name__, convert_time_units(self.time_average_seconds)))
         return caller
 
 
@@ -241,9 +268,9 @@ class ComparisonBenchmark(Benchmark):
         self.group = group
         self.classname = classname
         self.result_validation = validation
+        self.result = None
         if group not in self.groups:
             self.groups[group] = []
-
 
     def __call__(self, caller):
         if self.enable:
@@ -251,19 +278,11 @@ class ComparisonBenchmark(Benchmark):
             self.groups[self.group].append(self)
             # Bound functions are tested in ClassBenchmark.__call__
             # Just store a reference to the ComparisonBenchmark if the function is bound, otherwise, run the test
-            if self._is_bound_function:
-                try:
-                    BenchmarkedClass.bound_functions[self.classname].append(self)
-                except KeyError:
-                    BenchmarkedClass.bound_functions[self.classname] = [self]
-                self.stmt = 'instance.' + self.stmt
-            else:
+            if not self.is_class_method:
                 # Run the test
                 self.run_timeit(self.stmt, self.setup_src)
-
                 if self.result_validation:
                     self.validate()
-
         return caller
 
     def validate(self):
@@ -284,7 +303,7 @@ class ComparisonBenchmark(Benchmark):
                 logging.info('Validating {}......PASSED!'.format(benchmark.callable.__name__))
             else:
                 error = 'Results of functions {0} and {1} are not equivalent.\n{0}:\t {2}\n{1}:\t{3}'
-                logging.info(error.format(compare_against.callable.__name__, self.callable.__name__,
+                raise ValidationError(error.format(compare_against.callable.__name__, self.callable.__name__,
                                           compare_result, validation_scope['validation_result']))
 
 

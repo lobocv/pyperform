@@ -6,7 +6,7 @@ It also demonstrates how to use imported modules in your benchmarks as well as c
 
 from pyperform import ComparisonBenchmark
 from math import sin  #!
-sd=3
+
 
 @ComparisonBenchmark('Group1', validation=True, largs=(100,))
 def list_append(n, *args, **kwargs):
