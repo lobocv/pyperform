@@ -17,6 +17,13 @@ Features of pyperform include:
     - Performance tests can easily be disabled/enabled globally.
     - Community-driven library of performance tests to learn from.
 
+Installation
+============
+To install:
+    
+    pip install pyperform
+    
+
 Usage
 =====
 
