@@ -80,7 +80,7 @@ def remove_decorators(src):
     n_deleted = 0
     for n in xrange(len(src_lines)):
         line = src_lines[n - n_deleted].strip()
-        if 'Benchmark' in line or multi_line:
+        if (line.startswith('@') and 'Benchmark' in line) or multi_line:
             del src_lines[n - n_deleted]
             n_deleted += 1
             if line.endswith(')'):
@@ -115,6 +115,7 @@ def generate_call_statement(func, is_class_method, *args, **kwargs):
 
 class ValidationError(Exception):
     pass
+
 
 class Benchmark(object):
     enable = True
@@ -165,7 +166,7 @@ class Benchmark(object):
                 setup_src = ''
 
             src = '\n'.join([imports, setup_src, func_src])
-            self.setup_src = remove_decorators(src) + '\n'
+            self.setup_src = src + '\n'
             self.log.write(self.setup_src)
 
             self.stmt = generate_call_statement(caller, self.is_class_method, *self._args, **self._kwargs)
