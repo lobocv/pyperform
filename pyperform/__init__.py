@@ -203,8 +203,8 @@ class Benchmark(object):
 class BenchmarkedClass(Benchmark):
     bound_functions = {}
 
-    def __init__(self, setup=None, cls_args=None, cls_kwargs=None, *args, **kwargs):
-        super(BenchmarkedClass, self).__init__(setup, largs=cls_args, kwargs=cls_kwargs, *args, **kwargs)
+    def __init__(self, setup=None, largs=None, kwargs=None, **kw):
+        super(BenchmarkedClass, self).__init__(setup, largs=largs, kwargs=kwargs, **kw)
 
     def __call__(self, cls):
         if self.enable:
@@ -264,8 +264,8 @@ class BenchmarkedFunction(Benchmark):
 class ComparisonBenchmark(Benchmark):
     groups = {}
 
-    def __init__(self, group, classname=None, setup=None, validation=False, *largs, **kwargs):
-        super(ComparisonBenchmark, self).__init__(setup=setup, *largs, **kwargs)
+    def __init__(self, group, classname=None, setup=None, validation=False, largs=None, kwargs=None, **kw):
+        super(ComparisonBenchmark, self).__init__(setup=setup, largs=largs, kwargs=kwargs, **kw)
         self.group = group
         self.classname = classname
         self.result_validation = validation
