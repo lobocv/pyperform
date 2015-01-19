@@ -29,13 +29,54 @@ Usage
 
 To use pyperform to benchmark functions, you need to add one of the following decorators:
 
-    @BenchmarkedFunction(setup=None, classname=None, timeit_repeat=3, timeit_number=1000, largs=None, kwargs=None)
+    @BenchmarkedFunction(setup=None,
+                         classname=None,
+                         largs=None,
+                         kwargs=None
+                         timeit_repeat=3,
+                         timeit_number=1000)
     
-    @BenchmarkedClass(setup=None, timeit_repeat=3, timeit_number=1000, largs=None, kwargs=None)
+    @BenchmarkedClass(setup=None,
+                      largs=None,
+                      kwargs=None,
+                      timeit_repeat=3,
+                      timeit_number=1000)
     
-    @ComparisonBenchmark(group, classname=None, setup=None, validation=False, *largs, **kwargs
+    @ComparisonBenchmark(group,
+                         classname=None,
+                         setup=None,
+                         largs=None,
+                         kwargs=None
+                         validation=False,
+                         timeit_repeat=3,
+                         timeit_number=1000)
+                         
+
+where largs is a list of arguments to pass to the function and kwargs is a dictionary of keyword arguments to pass to the 
+function. The setup argument is described in the following section. All decorators have timeit_repeat and timeit_number
+arguments which are can be used to set the number of trials and repetitions to use with timeit. The ComparisonBenchmark
+has a validation flag, which when set to True, will attempt to compare the results of the functions in the group.
+
+Imports
+-------
+Imports can be added by appending the tag `#!` to the end of an import statement in a script. Pyperform will find all
+import statements that are tagged with `#!` and import them into your benchmark.
+
+For example:
     
-Script Setup
+    from math import log #!
+    
+    @BenchmarkedFunction(largs=(16,))
+    def log_base_2(x):
+        return log(x, 2)
+        
+Results in:
+
+    log_base_2 	 3.567 us
+    
+Alternative, you can set the tag for pyperform to search for by calling set_import_tag(tag)` with a string argument.
+    
+The setup argument (Optional)
 ------------
 All decorators have a setup argument which can be either a function with no arguments, or string of code. If given a
 function, the body of the function is executed in the global scope. This means that objects and variables instantiated 
@@ -58,25 +99,6 @@ Results in:
     
     multiply_by_a 	 3.445 us
 
-Imports
--------
-Imports can be added by appending the tag `#!` to the end of an import statement in a script. Pyperform will find all
-import statements that are tagged with `#!` and import them into your benchmark.
-
-For example:
-    
-    from math import log #!
-    
-    @BenchmarkedFunction(largs=(16,))
-    def log_base_2(x):
-        return log(x, 2)
-        
-Results in:
-
-    log_base_2 	 3.567 us
-    
-Alternative, you can set the tag for pyperform to search for by calling set_import_tag(tag)` with a string argument.
-
 
 Class-method Benchmarking
 -------------------------
@@ -95,7 +117,7 @@ it is a BenchmarkedFunction instead. The result of BenchmarkedFunctions is print
 
     from pyperform import BenchmarkedClass, ComparisonBenchmark, BenchmarkedFunction
 
-    @BenchmarkedClass(cls_args=('Calvin', 24, 1000.,), cls_kwargs={'height': '165 cm'})
+    @BenchmarkedClass(largs=('Calvin', 24, 1000.,), kwargs={'height': '165 cm'})
     class Person(object):
 
         def __init__(self, name, age, monthly_income, height=None, *args, **kwargs):
@@ -105,8 +127,8 @@ it is a BenchmarkedFunction instead. The result of BenchmarkedFunctions is print
             self.monthly_income = monthly_income
     
     
-        @ComparisonBenchmark('Calculate Savings', classname="Person", timeit_number=100, validation=True, largs=(55,),
-                             kwargs={'monthly_spending': 500})
+        @ComparisonBenchmark('Calculate Savings', classname="Person", timeit_number=100,
+                             validation=True, largs=(55,), kwargs={'monthly_spending': 500})
         def calculate_savings_method1(self, retirement_age, monthly_spending=0):
             savings = 0
             for y in range(self.age, retirement_age):
@@ -114,15 +136,16 @@ it is a BenchmarkedFunction instead. The result of BenchmarkedFunctions is print
                     savings += self.monthly_income - monthly_spending
             return savings
     
-        @ComparisonBenchmark('Calculate Savings', classname="Person", timeit_number=100, validation=True, largs=(55,),
-                             kwargs={'monthly_spending': 500})
+        @ComparisonBenchmark('Calculate Savings', classname="Person", timeit_number=100,
+                             validation=True, largs=(55,), kwargs={'monthly_spending': 500})
         def calculate_savings_method2(self, retirement_age, monthly_spending=0):
             yearly_income = 12 * (self.monthly_income - monthly_spending)
             n_years = retirement_age - self.age
             if n_years > 0:
                 return yearly_income * n_years
     
-        @BenchmarkedFunction(classname="Person", timeit_number=100, largs=(55,), kwargs={'monthly_spending': 500})
+        @BenchmarkedFunction(classname="Person", timeit_number=100,
+                             largs=(55,), kwargs={'monthly_spending': 500})
         def same_as_method_2(self, retirement_age, monthly_spending=0):
             yearly_income = 12 * (self.monthly_income - monthly_spending)
             n_years = retirement_age - self.age
