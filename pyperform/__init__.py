@@ -11,7 +11,7 @@ from math import log10
 if sys.version[0] == '3':
     import io as StringIO
 else:
-    import StringIO
+    import cStringIO as StringIO
 __version__ = '1.5'
 logging.getLogger().setLevel(logging.INFO)
 
@@ -309,37 +309,39 @@ class ComparisonBenchmark(Benchmark):
 
 
     @staticmethod
-    def summarize(group, fs=None):
+    def summarize(group, fs=None, include_source=True):
         """
         Tabulate and write the results of ComparisonBenchmarks to a file or standard out.
         :param str group: name of the comparison group.
         :param fs: file-like object (Optional)
         """
-        _line_break = '{0:-<100}\n'.format('')
+        _line_break = '{0:-<120}\n'.format('')
         tests = sorted(ComparisonBenchmark.groups[group], key=lambda t: getattr(t, 'time_average_seconds'))
         log = StringIO.StringIO()
         log.write('Call statement:\n\n')
         log.write('\t' + tests[0].stmt)
         log.write('\n\n\n')
-        fmt = "{0: <35} {1: <12} {2: <15} {3: <15} {4: <14}\n"
-        log.write(fmt.format('Function Name', 'Time', '% of Fastest', 'timeit_repeat', 'timeit_number'))
+        fmt = "{0: <8} {1: <35} {2: <12} {3: <15} {4: <15} {5: <14}\n"
+        log.write(fmt.format('Rank', 'Function Name', 'Time', '% of Fastest', 'timeit_repeat', 'timeit_number'))
         log.write(_line_break)
         log.write('\n')
 
-        for t in tests:
+        for i, t in enumerate(tests):
             func_name = "{}.{}".format(t.classname, t.callable.__name__) if t.classname else t.callable.__name__
-            log.write(fmt.format(func_name,
+            log.write(fmt.format(i+1,
+                                 func_name,
                                  convert_time_units(t.time_average_seconds),
                                  "{:.1f}".format(tests[0].time_average_seconds / t.time_average_seconds * 100),
                                  t.timeit_repeat,
                                  t.timeit_number))
         log.write(_line_break)
 
-        log.write('\n\n\nSource Code:\n')
-        log.write(_line_break)
-        for test in tests:
-            log.write(test.log.getvalue())
+        if include_source:
+            log.write('\n\n\nSource Code:\n')
             log.write(_line_break)
+            for test in tests:
+                log.write(test.log.getvalue())
+                log.write(_line_break)
 
         if isinstance(fs, str):
             with open(fs, 'w') as f:
