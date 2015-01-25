@@ -1,4 +1,4 @@
-pyperform
+PyPerform
 =========
 
 An easy and convenient way to performance test blocks of python code.
@@ -167,34 +167,38 @@ This results in a file `report.txt` that contains the ComparisonBenchmark's resu
         instance.calculate_savings_method2(55, monthly_spending=500)
     
     
-    Function Name                       Time         % of Fastest    timeit_repeat   timeit_number 
-    ----------------------------------------------------------------------------------------------------
+    Rank     Function Name                       Time         % of Fastest    timeit_repeat   timeit_number 
+    ------------------------------------------------------------------------------------------------------------------------
     
-    Person.calculate_savings_method2    3.814 us     100.0           3               100           
-    Person.calculate_savings_method1    65.479 us    5.8             3               100           
-    ----------------------------------------------------------------------------------------------------
+    1        Person.calculate_savings_method2    267.093 ns   100.0           3               100           
+    2        Person.calculate_savings_method1    35.623 us    0.7             3               100           
+    ------------------------------------------------------------------------------------------------------------------------
     
     
     
     Source Code:
-    ----------------------------------------------------------------------------------------------------
+    ------------------------------------------------------------------------------------------------------------------------
+    
+    
     def calculate_savings_method2(self, retirement_age, monthly_spending=0):
         yearly_income = 12 * (self.monthly_income - monthly_spending)
         n_years = retirement_age - self.age
         if n_years > 0:
             return yearly_income * n_years
-    ----------------------------------------------------------------------------------------------------
+    ------------------------------------------------------------------------------------------------------------------------
+    
+    
     def calculate_savings_method1(self, retirement_age, monthly_spending=0):
         savings = 0
         for y in range(self.age, retirement_age):
             for m in range(12):
                 savings += self.monthly_income - monthly_spending
         return savings
-    ----------------------------------------------------------------------------------------------------
+    ------------------------------------------------------------------------------------------------------------------------
 
 and printed to the screen, the results of the BenchmarkedFunction
     
-    same_as_method_2 	 3.788 us
+    same_as_method_2 	 262.827 ns
     
 Validation
 ==========
