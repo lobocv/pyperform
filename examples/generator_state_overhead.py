@@ -16,7 +16,7 @@ def _setup():
                 self.a = SomeClass(n-1)
 
         def func(self):
-            self.count +=1
+            self.count += 1
 
             return sum(range(10))
 
@@ -36,13 +36,12 @@ class SomeClass(object):
 class MyClass(object):
 
     def __init__(self):
-        self.obj = SomeClass(5)
-        self.g = self.generator()
+        self.obj = SomeClass(5)             # setup an object with some nested lookup
+        self.g = self.generator()           # setup the generator in advance
 
     @ComparisonBenchmark('gen', classname='MyClass', setup=_setup, validation=True)
     def call_generator(self):
-        # self.g = self.generator()
-        for i in self.g:
+        for i in self.g:                # Call the generator which calls the function 100 times (like not_generator)
             pass
         return self.obj.a.a.a.a.count
 
@@ -55,8 +54,9 @@ class MyClass(object):
 
     @ComparisonBenchmark('gen', classname='MyClass', setup=_setup, validation=True)
     def not_generator(self):
+        func = self.obj.a.a.a.a.func
         for i in range(100):
-            self.obj.a.a.a.a.func()
+            func()
         return self.obj.a.a.a.a.count
 
 
