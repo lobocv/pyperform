@@ -1,5 +1,8 @@
 __author__ = 'Calvin'
-
+try:
+    from builtins import range
+except ImportError:
+    range = xrange
 from pyperform import *
 
 
@@ -26,7 +29,7 @@ class SomeClass(object):
             self.a = SomeClass(n-1)
 
     def func(self):
-        self.count +=1
+        self.count += 1
         return sum(range(10))
 
 @BenchmarkedClass(setup=_setup)
@@ -45,14 +48,14 @@ class MyClass(object):
 
     def generator(self):
         func = self.obj.a.a.a.a.func
-        for i in xrange(100):
+        for i in range(100):
             func()
             yield i
 
 
     @ComparisonBenchmark('gen', classname='MyClass', setup=_setup, validation=True)
     def not_generator(self):
-        for i in xrange(100):
+        for i in range(100):
             self.obj.a.a.a.a.func()
         return self.obj.a.a.a.a.count
 

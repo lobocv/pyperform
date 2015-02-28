@@ -1,5 +1,11 @@
 from __future__ import print_function
 
+try:
+    from builtins import range
+except ImportError:
+    range = xrange
+from six import iteritems
+
 import inspect
 import timeit
 import sys
@@ -78,7 +84,7 @@ def remove_decorators(src):
     src_lines = src.splitlines()
     multi_line = False
     n_deleted = 0
-    for n in xrange(len(src_lines)):
+    for n in range(len(src_lines)):
         line = src_lines[n - n_deleted].strip()
         if (line.startswith('@') and 'Benchmark' in line) or multi_line:
             del src_lines[n - n_deleted]
@@ -106,7 +112,7 @@ def generate_call_statement(func, is_class_method, *args, **kwargs):
         stmt = func.__name__ + '('
     for arg in args:
         stmt += arg.__repr__() + ', '
-    for kw, val in kwargs.iteritems():
+    for kw, val in iteritems(kwargs):
         stmt += '{0}={1}, '.format(kw, val.__repr__())
     stmt = stmt.strip(', ')
     stmt += ')'
@@ -227,7 +233,11 @@ class BenchmarkedClass(Benchmark):
 
 
     def validate(self, benchmarks):
-        # Execute the code once to get it's results (to be used in function validation)
+        """
+        Execute the code once to get it's results (to be used in function validation). Compare the result to the
+        first function in the group.
+        :param benchmarks: list of benchmarks to validate.
+        """
         class_code = self.setup_src
         instance_creation = '\ninstance = {}'.format(self.stmt)
         for i, benchmark in enumerate(benchmarks):
@@ -236,15 +246,17 @@ class BenchmarkedClass(Benchmark):
 
             validation_code = class_code + instance_creation + '\nvalidation_result = ' + benchmark.stmt
             validation_scope = {}
-            exec (validation_code, validation_scope)
+            exec(validation_code, validation_scope)
             # Store the result in the first function in the group.
             if i == 0:
                 compare_against_function = benchmarks[0].callable.__name__
                 compare_against_result = validation_scope['validation_result']
+                logging.info('PyPerform: Validating group "{b.group}" against method '
+                             '"{b.classname}.{b.callable.__name__}"'.format(b=benchmarks[0]))
             else:
                 if compare_against_result == validation_scope['validation_result']:
-                    logging.info('Validating {} against {}......PASSED!'.format(benchmark.callable.__name__,
-                                                                                compare_against_function))
+                    logging.info('PyPerform: Validating {b.classname}.{b.callable.__name__}......PASSED!'
+                                 .format(b=benchmark))
                 else:
                     error = 'Results of functions {0} and {1} are not equivalent.\n{0}:\t {2}\n{1}:\t{3}'
                     raise ValidationError(error.format(compare_against_function, benchmark.callable.__name__,
@@ -287,24 +299,29 @@ class ComparisonBenchmark(Benchmark):
         return caller
 
     def validate(self):
-        # Execute the code once to get it's results (to be used in function validation)
+        """
+        Execute the code once to get it's results (to be used in function validation). Compare the result to the
+        first function in the group.
+        """
         validation_code = self.setup_src + '\nvalidation_result = ' + self.stmt
         validation_scope = {}
-        exec (validation_code, validation_scope)
+        exec(validation_code, validation_scope)
         # Store the result in the first function in the group.
         if len(self.groups[self.group]) == 1:
             self.result = validation_scope['validation_result']
+            logging.info('PyPerform: Validating group "{b.group}" against function "{b.callable.__name__}"'
+                         .format(b=self))
         else:
-            compare_against = self.groups[self.group][0]
+            compare_against_benchmark = self.groups[self.group][0]
             test = [benchmark.result_validation for benchmark in self.groups[self.group]]
             if not all(test):
                 raise ValueError('All functions within a group must have the same validation flag.')
-            compare_result = compare_against.result
+            compare_result = compare_against_benchmark.result
             if compare_result == validation_scope['validation_result']:
-                logging.info('Validating {}......PASSED!'.format(benchmark.callable.__name__))
+                logging.info('PyPerform: Validating {}......PASSED!'.format(self.callable.__name__))
             else:
                 error = 'Results of functions {0} and {1} are not equivalent.\n{0}:\t {2}\n{1}:\t{3}'
-                raise ValidationError(error.format(compare_against.callable.__name__, self.callable.__name__,
+                raise ValidationError(error.format(compare_against_benchmark.callable.__name__, self.callable.__name__,
                                           compare_result, validation_scope['validation_result']))
 
 
