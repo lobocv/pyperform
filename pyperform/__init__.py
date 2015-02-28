@@ -1,26 +1,20 @@
 from __future__ import print_function
 
-try:
-    from builtins import range
-except ImportError:
-    range = xrange
-from six import iteritems
-
+import logging
 import inspect
 import timeit
 import sys
 
-import logging
 from types import FunctionType
 from math import log10
 
 if sys.version[0] == '3':
-    import io as StringIO
+    import io as StringIO               # Python 3.x
 else:
-    import cStringIO as StringIO
-__version__ = '1.5'
-logging.getLogger().setLevel(logging.INFO)
+    import cStringIO as StringIO        # Python 2.x
+    range = xrange
 
+__version__ = '1.5'
 _import_tag = '#!'
 
 
@@ -112,7 +106,7 @@ def generate_call_statement(func, is_class_method, *args, **kwargs):
         stmt = func.__name__ + '('
     for arg in args:
         stmt += arg.__repr__() + ', '
-    for kw, val in iteritems(kwargs):
+    for kw, val in kwargs.items():
         stmt += '{0}={1}, '.format(kw, val.__repr__())
     stmt = stmt.strip(', ')
     stmt += ')'
