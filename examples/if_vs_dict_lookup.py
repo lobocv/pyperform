@@ -29,4 +29,4 @@ def do_dict_lookup():
     lookup[ii](ii)
 
 
-# ComparisonBenchmark.summarize('group1')
+ComparisonBenchmark.summarize('group1')
