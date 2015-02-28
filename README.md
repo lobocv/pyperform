@@ -5,6 +5,7 @@ An easy and convenient way to performance test blocks of python code.
 Tired of writing separate scripts for your performance tests? Don't like coding in strings?
 Using the pyperform decorators, you can easily implement timeit tests to your functions with just one line!
 
+
 Features
 ========
 Features of pyperform include:
@@ -23,6 +24,11 @@ To install:
     
     pip install pyperform
     
+
+Compatibility
+=============
+PyPerform was developed in Python 2.7 but has been tested with Python 3.4. Please report any compatibility issues or
+send pull requests with your changes!
 
 Usage
 =====
