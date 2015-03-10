@@ -35,28 +35,31 @@ Usage
 
 To use pyperform to benchmark functions, you need to add one of the following decorators:
 
-    @BenchmarkedFunction(setup=None,
-                         classname=None,
-                         largs=None,
-                         kwargs=None
-                         timeit_repeat=3,
-                         timeit_number=1000)
-    
-    @BenchmarkedClass(setup=None,
-                      largs=None,
-                      kwargs=None,
-                      timeit_repeat=3,
-                      timeit_number=1000)
-    
-    @ComparisonBenchmark(group,
-                         classname=None,
-                         setup=None,
-                         largs=None,
-                         kwargs=None
-                         validation=False,
-                         timeit_repeat=3,
-                         timeit_number=1000)
-                         
+```python
+
+@BenchmarkedFunction(setup=None,
+                     classname=None,
+                     largs=None,
+                     kwargs=None,
+                     timeit_repeat=3,
+                     timeit_number=1000)
+
+@BenchmarkedClass(setup=None,
+                  largs=None,
+                  kwargs=None,
+                  timeit_repeat=3,
+                  timeit_number=1000)
+
+@ComparisonBenchmark(group,
+                     classname=None,
+                     setup=None,
+                     largs=None,
+                     kwargs=None,
+                     validation=False,
+                     timeit_repeat=3,
+                     timeit_number=1000)
+
+```
 
 where largs is a list of arguments to pass to the function and kwargs is a dictionary of keyword arguments to pass to the 
 function. The setup argument is described in the following section. All decorators have timeit_repeat and timeit_number
@@ -69,13 +72,17 @@ Imports can be added by appending the tag `#!` to the end of an import statement
 import statements that are tagged with `#!` and import them into your benchmark.
 
 For example:
-    
-    from math import log #!
-    
-    @BenchmarkedFunction(largs=(16,))
-    def log_base_2(x):
-        return log(x, 2)
-        
+
+```python
+
+from math import log #!
+
+@BenchmarkedFunction(largs=(16,))
+def log_base_2(x):
+    return log(x, 2)
+
+```
+
 Results in:
 
     log_base_2 	 3.567 us
@@ -89,18 +96,22 @@ function, the body of the function is executed in the global scope. This means t
 in the body of the function are accessible from within the benchmarked function.
   
 Example:
-        
-    from pyperform import BenchmarkedFunction
-    
-    def _setup():
-        a = 10
-    
-    @BenchmarkedFunction(setup=_setup, largs=(5,))
-    def multiply_by_a(b):
-        result = a * b
-        assert result == 50
-        return result
-        
+
+```python
+
+from pyperform import BenchmarkedFunction
+
+def _setup():
+    a = 10
+
+@BenchmarkedFunction(setup=_setup, largs=(5,))
+def multiply_by_a(b):
+    result = a * b
+    assert result == 50
+    return result
+
+```
+
 Results in:
     
     multiply_by_a 	 3.445 us
@@ -120,51 +131,56 @@ Two of the class-methods are `ComparisonBenchmarks` and will be compared with on
 call the `ComparisonBenchmark.summarize()` function. The third function is a duplicate of calculate_savings_method2 but
 it is a BenchmarkedFunction instead. The result of BenchmarkedFunctions is printed when the script is run.
 
+```python
 
-    from pyperform import BenchmarkedClass, ComparisonBenchmark, BenchmarkedFunction
+from pyperform import BenchmarkedClass, ComparisonBenchmark, BenchmarkedFunction
 
-    @BenchmarkedClass(largs=('Calvin', 24, 1000.,), kwargs={'height': '165 cm'})
-    class Person(object):
+@BenchmarkedClass(largs=('Calvin', 24, 1000.,), kwargs={'height': '165 cm'})
+class Person(object):
 
-        def __init__(self, name, age, monthly_income, height=None, *args, **kwargs):
-            self.name = name
-            self.age = age
-            self.height = height
-            self.monthly_income = monthly_income
-    
-    
-        @ComparisonBenchmark('Calculate Savings', classname="Person", timeit_number=100,
-                             validation=True, largs=(55,), kwargs={'monthly_spending': 500})
-        def calculate_savings_method1(self, retirement_age, monthly_spending=0):
-            savings = 0
-            for y in range(self.age, retirement_age):
-                for m in range(12):
-                    savings += self.monthly_income - monthly_spending
-            return savings
-    
-        @ComparisonBenchmark('Calculate Savings', classname="Person", timeit_number=100,
-                             validation=True, largs=(55,), kwargs={'monthly_spending': 500})
-        def calculate_savings_method2(self, retirement_age, monthly_spending=0):
-            yearly_income = 12 * (self.monthly_income - monthly_spending)
-            n_years = retirement_age - self.age
-            if n_years > 0:
-                return yearly_income * n_years
-    
-        @BenchmarkedFunction(classname="Person", timeit_number=100,
-                             largs=(55,), kwargs={'monthly_spending': 500})
-        def same_as_method_2(self, retirement_age, monthly_spending=0):
-            yearly_income = 12 * (self.monthly_income - monthly_spending)
-            n_years = retirement_age - self.age
-            if n_years > 0:
-                return yearly_income * n_years
+    def __init__(self, name, age, monthly_income, height=None, *args, **kwargs):
+        self.name = name
+        self.age = age
+        self.height = height
+        self.monthly_income = monthly_income
 
 
+    @ComparisonBenchmark('Calculate Savings', classname="Person", timeit_number=100,
+                         validation=True, largs=(55,), kwargs={'monthly_spending': 500})
+    def calculate_savings_method1(self, retirement_age, monthly_spending=0):
+        savings = 0
+        for y in range(self.age, retirement_age):
+            for m in range(12):
+                savings += self.monthly_income - monthly_spending
+        return savings
+
+    @ComparisonBenchmark('Calculate Savings', classname="Person", timeit_number=100,
+                         validation=True, largs=(55,), kwargs={'monthly_spending': 500})
+    def calculate_savings_method2(self, retirement_age, monthly_spending=0):
+        yearly_income = 12 * (self.monthly_income - monthly_spending)
+        n_years = retirement_age - self.age
+        if n_years > 0:
+            return yearly_income * n_years
+
+    @BenchmarkedFunction(classname="Person", timeit_number=100,
+                         largs=(55,), kwargs={'monthly_spending': 500})
+    def same_as_method_2(self, retirement_age, monthly_spending=0):
+        yearly_income = 12 * (self.monthly_income - monthly_spending)
+        n_years = retirement_age - self.age
+        if n_years > 0:
+            return yearly_income * n_years
+
+```
 
 You can print the summary to file or if ComparisonBenchmark.summarize() is not given an fs parameter, it will print to
 console.
 
-    report_file = open('report.txt', 'w')
-    ComparisonBenchmark.summarize(group='Calculate Savings', fs=report_file)
+```python
+
+report_file = open('report.txt', 'w')
+ComparisonBenchmark.summarize(group='Calculate Savings', fs=report_file)
+
+```
 
 This results in a file `report.txt` that contains the ComparisonBenchmark's results:
     
@@ -213,21 +229,25 @@ ComparisonBenchmark in a group is compared. If the results of the function are t
  
 Example:
 
-    from pyperform import ComparisonBenchmark
-    from math import sin  #!
-    
-    
-    @ComparisonBenchmark('Group1', validation=True, largs=(100,))
-    def list_append(n, *args, **kwargs):
-        l = []
-        for i in xrange(1, n):
-            l.append(sin(i))
-        return l
-    
-    
-    @ComparisonBenchmark('Group1', validation=True, largs=(100,))
-    def list_comprehension(n, *args, **kwargs):
-        return 1
+```python
+
+from pyperform import ComparisonBenchmark
+from math import sin  #!
+
+
+@ComparisonBenchmark('Group1', validation=True, largs=(100,))
+def list_append(n, *args, **kwargs):
+    l = []
+    for i in xrange(1, n):
+        l.append(sin(i))
+    return l
+
+
+@ComparisonBenchmark('Group1', validation=True, largs=(100,))
+def list_comprehension(n, *args, **kwargs):
+    return 1
+
+```
 
 Output:
 
