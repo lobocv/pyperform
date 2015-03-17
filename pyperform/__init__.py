@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import inspect
 import timeit
+import time
 import sys
 
 import logging
@@ -352,3 +353,13 @@ class ComparisonBenchmark(Benchmark):
             except AttributeError as e:
                 print(e)
 
+
+def timer(func):
+    def _timed_function(*args, **kwargs):
+        t1 = time.time()
+        func(*args, **kwargs)
+        t2 = time.time()
+        print(func.__name__, ':\t', convert_time_units(t2-t1))
+
+    _timed_function.__name__ = "_timed_{}".format(func.__name__)
+    return _timed_function
