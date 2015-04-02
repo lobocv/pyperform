@@ -1,21 +1,21 @@
 from __future__ import print_function
 
+import logging
 import inspect
 import timeit
 import time
 import sys
 
-import logging
 from types import FunctionType
 from math import log10
 
 if sys.version[0] == '3':
-    import io as StringIO
+    import io as StringIO               # Python 3.x
 else:
-    import StringIO
-__version__ = '1.5'
-logging.getLogger().setLevel(logging.INFO)
+    import cStringIO as StringIO        # Python 2.x
+    range = xrange
 
+__version__ = '1.51'
 _import_tag = '#!'
 
 
@@ -79,9 +79,9 @@ def remove_decorators(src):
     src_lines = src.splitlines()
     multi_line = False
     n_deleted = 0
-    for n in xrange(len(src_lines)):
+    for n in range(len(src_lines)):
         line = src_lines[n - n_deleted].strip()
-        if 'Benchmark' in line or multi_line:
+        if (line.startswith('@') and 'Benchmark' in line) or multi_line:
             del src_lines[n - n_deleted]
             n_deleted += 1
             if line.endswith(')'):
@@ -107,7 +107,7 @@ def generate_call_statement(func, is_class_method, *args, **kwargs):
         stmt = func.__name__ + '('
     for arg in args:
         stmt += arg.__repr__() + ', '
-    for kw, val in kwargs.iteritems():
+    for kw, val in kwargs.items():
         stmt += '{0}={1}, '.format(kw, val.__repr__())
     stmt = stmt.strip(', ')
     stmt += ')'
@@ -116,6 +116,7 @@ def generate_call_statement(func, is_class_method, *args, **kwargs):
 
 class ValidationError(Exception):
     pass
+
 
 class Benchmark(object):
     enable = True
@@ -166,7 +167,7 @@ class Benchmark(object):
                 setup_src = ''
 
             src = '\n'.join([imports, setup_src, func_src])
-            self.setup_src = remove_decorators(src) + '\n'
+            self.setup_src = src + '\n'
             self.log.write(self.setup_src)
 
             self.stmt = generate_call_statement(caller, self.is_class_method, *self._args, **self._kwargs)
@@ -203,8 +204,8 @@ class Benchmark(object):
 class BenchmarkedClass(Benchmark):
     bound_functions = {}
 
-    def __init__(self, setup=None, cls_args=None, cls_kwargs=None, *args, **kwargs):
-        super(BenchmarkedClass, self).__init__(setup, largs=cls_args, kwargs=cls_kwargs, *args, **kwargs)
+    def __init__(self, setup=None, largs=None, kwargs=None, **kw):
+        super(BenchmarkedClass, self).__init__(setup, largs=largs, kwargs=kwargs, **kw)
 
     def __call__(self, cls):
         if self.enable:
@@ -227,7 +228,11 @@ class BenchmarkedClass(Benchmark):
 
 
     def validate(self, benchmarks):
-        # Execute the code once to get it's results (to be used in function validation)
+        """
+        Execute the code once to get it's results (to be used in function validation). Compare the result to the
+        first function in the group.
+        :param benchmarks: list of benchmarks to validate.
+        """
         class_code = self.setup_src
         instance_creation = '\ninstance = {}'.format(self.stmt)
         for i, benchmark in enumerate(benchmarks):
@@ -236,15 +241,17 @@ class BenchmarkedClass(Benchmark):
 
             validation_code = class_code + instance_creation + '\nvalidation_result = ' + benchmark.stmt
             validation_scope = {}
-            exec (validation_code, validation_scope)
+            exec(validation_code, validation_scope)
             # Store the result in the first function in the group.
             if i == 0:
                 compare_against_function = benchmarks[0].callable.__name__
                 compare_against_result = validation_scope['validation_result']
+                logging.info('PyPerform: Validating group "{b.group}" against method '
+                             '"{b.classname}.{b.callable.__name__}"'.format(b=benchmarks[0]))
             else:
                 if compare_against_result == validation_scope['validation_result']:
-                    logging.info('Validating {} against {}......PASSED!'.format(benchmark.callable.__name__,
-                                                                                compare_against_function))
+                    logging.info('PyPerform: Validating {b.classname}.{b.callable.__name__}......PASSED!'
+                                 .format(b=benchmark))
                 else:
                     error = 'Results of functions {0} and {1} are not equivalent.\n{0}:\t {2}\n{1}:\t{3}'
                     raise ValidationError(error.format(compare_against_function, benchmark.callable.__name__,
@@ -264,8 +271,8 @@ class BenchmarkedFunction(Benchmark):
 class ComparisonBenchmark(Benchmark):
     groups = {}
 
-    def __init__(self, group, classname=None, setup=None, validation=False, *largs, **kwargs):
-        super(ComparisonBenchmark, self).__init__(setup=setup, *largs, **kwargs)
+    def __init__(self, group, classname=None, setup=None, validation=False, largs=None, kwargs=None, **kw):
+        super(ComparisonBenchmark, self).__init__(setup=setup, largs=largs, kwargs=kwargs, **kw)
         self.group = group
         self.classname = classname
         self.result_validation = validation
@@ -287,59 +294,66 @@ class ComparisonBenchmark(Benchmark):
         return caller
 
     def validate(self):
-        # Execute the code once to get it's results (to be used in function validation)
+        """
+        Execute the code once to get it's results (to be used in function validation). Compare the result to the
+        first function in the group.
+        """
         validation_code = self.setup_src + '\nvalidation_result = ' + self.stmt
         validation_scope = {}
-        exec (validation_code, validation_scope)
+        exec(validation_code, validation_scope)
         # Store the result in the first function in the group.
         if len(self.groups[self.group]) == 1:
             self.result = validation_scope['validation_result']
+            logging.info('PyPerform: Validating group "{b.group}" against function "{b.callable.__name__}"'
+                         .format(b=self))
         else:
-            compare_against = self.groups[self.group][0]
+            compare_against_benchmark = self.groups[self.group][0]
             test = [benchmark.result_validation for benchmark in self.groups[self.group]]
             if not all(test):
                 raise ValueError('All functions within a group must have the same validation flag.')
-            compare_result = compare_against.result
+            compare_result = compare_against_benchmark.result
             if compare_result == validation_scope['validation_result']:
-                logging.info('Validating {}......PASSED!'.format(benchmark.callable.__name__))
+                logging.info('PyPerform: Validating {}......PASSED!'.format(self.callable.__name__))
             else:
                 error = 'Results of functions {0} and {1} are not equivalent.\n{0}:\t {2}\n{1}:\t{3}'
-                raise ValidationError(error.format(compare_against.callable.__name__, self.callable.__name__,
+                raise ValidationError(error.format(compare_against_benchmark.callable.__name__, self.callable.__name__,
                                           compare_result, validation_scope['validation_result']))
 
 
     @staticmethod
-    def summarize(group, fs=None):
+    def summarize(group, fs=None, include_source=True):
         """
         Tabulate and write the results of ComparisonBenchmarks to a file or standard out.
         :param str group: name of the comparison group.
         :param fs: file-like object (Optional)
         """
-        _line_break = '{0:-<100}\n'.format('')
+        _line_break = '{0:-<120}\n'.format('')
         tests = sorted(ComparisonBenchmark.groups[group], key=lambda t: getattr(t, 'time_average_seconds'))
         log = StringIO.StringIO()
         log.write('Call statement:\n\n')
         log.write('\t' + tests[0].stmt)
         log.write('\n\n\n')
-        fmt = "{0: <35} {1: <12} {2: <15} {3: <15} {4: <14}\n"
-        log.write(fmt.format('Function Name', 'Time', '% of Fastest', 'timeit_repeat', 'timeit_number'))
+        fmt = "{0: <8} {1: <35} {2: <12} {3: <15} {4: <15} {5: <14}\n"
+        log.write(fmt.format('Rank', 'Function Name', 'Time', '% of Fastest', 'timeit_repeat', 'timeit_number'))
         log.write(_line_break)
         log.write('\n')
 
-        for t in tests:
+        for i, t in enumerate(tests):
             func_name = "{}.{}".format(t.classname, t.callable.__name__) if t.classname else t.callable.__name__
-            log.write(fmt.format(func_name,
+            log.write(fmt.format(i+1,
+                                 func_name,
                                  convert_time_units(t.time_average_seconds),
                                  "{:.1f}".format(tests[0].time_average_seconds / t.time_average_seconds * 100),
                                  t.timeit_repeat,
                                  t.timeit_number))
         log.write(_line_break)
 
-        log.write('\n\n\nSource Code:\n')
-        log.write(_line_break)
-        for test in tests:
-            log.write(test.log.getvalue())
+        if include_source:
+            log.write('\n\n\nSource Code:\n')
             log.write(_line_break)
+            for test in tests:
+                log.write(test.log.getvalue())
+                log.write(_line_break)
 
         if isinstance(fs, str):
             with open(fs, 'w') as f:

@@ -13,7 +13,7 @@ argument of monthly spending (monthly_spending).
 
 from pyperform import BenchmarkedClass, ComparisonBenchmark, BenchmarkedFunction
 
-@BenchmarkedClass(cls_args=('Calvin', 24, 1000.,), cls_kwargs={'height': '165 cm'})
+@BenchmarkedClass(largs=('Calvin', 24, 1000.,), kwargs={'height': '165 cm'})
 class Person(object):
 
     def __init__(self, name, age, monthly_income, height=None, *args, **kwargs):

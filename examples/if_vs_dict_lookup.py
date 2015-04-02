@@ -1,16 +1,15 @@
 __author__ = 'calvin'
-
 from pyperform import ComparisonBenchmark
 import random #!
 
 def _setup():
     l = []
-    lookup = {ii: l.append for ii in xrange(5)}
+    lookup = {ii: l.append for ii in range(5)}
 
 
 largs = (random.randint(0, 4),)
 
-@ComparisonBenchmark('group1', setup=_setup, validation=True, timeit_number=100, timeit_repeat=10000)
+@ComparisonBenchmark('group1', setup=_setup, validation=True, timeit_number=10, timeit_repeat=1000)
 def do_if():
     ii = random.randint(0, 4)
     if ii == 0:
@@ -24,7 +23,7 @@ def do_if():
     elif ii == 4:
         l.append(ii)
 
-@ComparisonBenchmark('group1', setup=_setup, validation=True, timeit_number=100, timeit_repeat=10000)
+@ComparisonBenchmark('group1', setup=_setup, validation=True, timeit_number=10, timeit_repeat=1000)
 def do_dict_lookup():
     ii = random.randint(0, 4)
     lookup[ii](ii)
