@@ -11,12 +11,20 @@ from email import encoders
 
 
 class CrashReporter(object):
+    '''
+    Create a context manager that emails a report with the traceback on a crash.
+    :param username: sender's email account
+    :param password: sender's email account password
+    :param recipients: list of report recipients
+    :param mailserver: smtplib.SMTP object
+    '''
 
-    def __init__(self, username, password, recipients, mailserver):
+    def __init__(self, username, password, recipients, mailserver, html=False):
         self.user = username
         self.pw = password
         self.recipients = recipients
         self.mailserver = mailserver
+        self.html = html
 
     def __enter__(self):
         logging.info('CrashReporter: Enabled')
@@ -31,11 +39,14 @@ class CrashReporter(object):
             else:
                 msg['To'] = self.recipients
             msg['From'] = self.user
-            msg['Subject'] = self.subject()
+            msg['Subject'] = self.subject(etype, evalue, tb)
 
-            # Add the body of the message as HTML
-            html_body = self.body(etype, evalue, tb)
-            msg.attach(MIMEText(html_body, 'html'))
+            # Add the body of the message
+            body = self.body(etype, evalue, tb)
+            if self.html:
+                msg.attach(MIMEText(body, 'html'))
+            else:
+                msg.attach(MIMEText(body))
 
             # Add any attachments
             attachments = self.attachments()
@@ -58,7 +69,7 @@ class CrashReporter(object):
             logging.info('CrashReporter: No crashes detected.')
             logging.info('CrashReporter: Exiting.')
 
-    def subject(self):
+    def subject(self, etype, evalue, tb):
         return 'Crash Report'
 
     def body(self, etype, evalue, tb):
