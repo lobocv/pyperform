@@ -43,9 +43,10 @@ class CrashReporter(object):
         self.check_interval = check_interval
         self._offline_report_limit = 5
         if report_dir:
-            if os.path.exists(report_dir) and self._get_offline_reports():
-                t = Thread(target=self._watcher, name='offline_reporter')
-                t.start()
+            if os.path.exists(report_dir):
+                if self._get_offline_reports():
+                    t = Thread(target=self._watcher, name='offline_reporter')
+                    t.start()
             else:
                 os.makedirs(report_dir)
 
