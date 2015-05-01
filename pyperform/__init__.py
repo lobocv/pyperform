@@ -15,7 +15,7 @@ else:
     import cStringIO as StringIO        # Python 2.x
     range = xrange
 
-__version__ = '1.61'
+__version__ = '1.70'
 _import_tag = '#!'
 
 
