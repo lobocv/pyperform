@@ -6,6 +6,7 @@ import os
 import glob
 import datetime
 import shutil
+import smtplib
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
@@ -26,12 +27,13 @@ class CrashReporter(object):
     :param html: Use HTML message for email (True) or plain text (False).
     '''
 
-    def __init__(self, username, password, recipients, mailserver, html=False, report_dir=None):
+    def __init__(self, username, password, recipients, smtp_host, smtp_port=0, html=False, report_dir=None):
         self.user = username
         self.pw = password
         self.recipients = recipients
-        self.mailserver = mailserver
         self.html = html
+        self.smtp_host = smtp_host
+        self.smtp_port = smtp_port
         # Setup the directory used to store offline crash reports
         self.report_dir = report_dir
         self._offline_report_limit = 5
@@ -51,10 +53,8 @@ class CrashReporter(object):
             self._etype = etype
             self._evalue = evalue
             self._tb = tb
-            try:
-                self._sendmail(self.subject(), self.body(), self.attachments(), html=self.html)
-            except Exception as e:
-                logger.info(e)
+            great_success = self._sendmail(self.subject(), self.body(), self.attachments(), html=self.html)
+            if not great_success:
                 self._save_report()
         else:
             logger.info('No crashes detected.')
@@ -100,8 +100,8 @@ class CrashReporter(object):
                                 'attachment; filename="%s"' % os.path.basename(attachment))
                 msg.attach(part)
 
-        ms = self.mailserver
         try:
+            ms = smtplib.SMTP(self.smtp_host, self.smtp_port)
             ms.ehlo()
             ms.starttls()
             ms.ehlo()
@@ -149,9 +149,10 @@ class CrashReporter(object):
                     text = _f.readlines()
                     body += '\n'.join(text)
                     body += '-------------------------------------------------\n'
-            self._sendmail(self.subject(), body)
-            for report in offline_reports:
-                os.remove(report)
+            great_success = self._sendmail(self.subject(), body)
+            if great_success:
+                for report in offline_reports:
+                    os.remove(report)
 
     def _get_offline_reports(self):
         return sorted(glob.glob(os.path.join(self.report_dir, "crashreport*")))
