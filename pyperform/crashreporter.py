@@ -7,7 +7,9 @@ import glob
 import datetime
 import shutil
 import smtplib
+import time
 
+from threading import Thread
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
@@ -23,11 +25,13 @@ class CrashReporter(object):
     :param username: sender's email account
     :param password: sender's email account password
     :param recipients: list of report recipients
-    :param mailserver: smtplib.SMTP object
+    :param smtp_host: smtp host address for smtplib.SMTP object
+    :param smtp_port: smtp port for smtplib.SMTP object
     :param html: Use HTML message for email (True) or plain text (False).
     '''
 
-    def __init__(self, username, password, recipients, smtp_host, smtp_port=0, html=False, report_dir=None):
+    def __init__(self, username, password, recipients, smtp_host, smtp_port=0, html=False, report_dir=None,
+                 check_interval=600):
         self.user = username
         self.pw = password
         self.recipients = recipients
@@ -36,11 +40,12 @@ class CrashReporter(object):
         self.smtp_port = smtp_port
         # Setup the directory used to store offline crash reports
         self.report_dir = report_dir
+        self.check_interval = check_interval
         self._offline_report_limit = 5
         if report_dir:
-            if os.path.exists(report_dir):
-                self._get_offline_reports()
-                self._send_offline_reports()
+            if os.path.exists(report_dir) and self._get_offline_reports():
+                t = Thread(target=self._watcher, name='offline_reporter')
+                t.start()
             else:
                 os.makedirs(report_dir)
 
@@ -153,6 +158,15 @@ class CrashReporter(object):
             if great_success:
                 for report in offline_reports:
                     os.remove(report)
+                logger.info('Offline reports sent.')
+            return great_success
 
     def _get_offline_reports(self):
         return sorted(glob.glob(os.path.join(self.report_dir, "crashreport*")))
+
+    def _watcher(self):
+        great_success = self._send_offline_reports()
+        while not great_success:
+            logger.info('Attempting to send offline reports.')
+            time.sleep(self.check_interval)
+            great_success = self._send_offline_reports()
