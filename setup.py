@@ -11,7 +11,7 @@ setup(
     author='Calvin Lobo',
     author_email='calvinvlobo@gmail.com',
     url='https://github.com/lobocv/pyperform',
-    download_url='https://github.com/lobocv/pyperform/tarball/1.5',
-    keywords=['testing', 'performance', 'comparison', 'convenience', 'logging', 'timeit', 'speed'],
+    download_url='https://github.com/lobocv/pyperform/tarball/%s' % __version__,
+    keywords=['testing', 'performance', 'comparison', 'convenience', 'logging', 'timeit', 'speed', 'crash reporting'],
     classifiers=[],
 )
