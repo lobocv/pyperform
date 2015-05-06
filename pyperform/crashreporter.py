@@ -140,9 +140,7 @@ class CrashReporter(object):
 
         # Write a new report
         report_path = os.path.join(self.report_dir, "crashreport01")
-        date = datetime.datetime.now().strftime('%d %B %Y, %I:%M %p\n')
         with open(report_path, 'w') as _f:
-            _f.write(date)
             _f.write(self.body())
 
     def _send_offline_reports(self):
