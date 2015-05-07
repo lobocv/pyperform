@@ -38,6 +38,7 @@ class CrashReporter(object):
         self.html = html
         self.smtp_host = smtp_host
         self.smtp_port = smtp_port
+        self._enabled = True
         # Setup the directory used to store offline crash reports
         self.report_dir = report_dir
         self.check_interval = check_interval
@@ -50,21 +51,29 @@ class CrashReporter(object):
             else:
                 os.makedirs(report_dir)
 
-    def __enter__(self):
+    def enable(self):
+        self._enabled = True
         logging.info('CrashReporter: Enabled')
 
+    def disable(self):
+        self._enabled = False
+        logging.info('CrashReporter: Disabled')
+
+    def __enter__(self):
+        self.enable()
+
     def __exit__(self, etype, evalue, tb):
-        if etype:
-            logger.info('Crash detected!')
-            self._etype = etype
-            self._evalue = evalue
-            self._tb = tb
-            great_success = self._sendmail(self.subject(), self.body(), self.attachments(), html=self.html)
-            if not great_success:
-                self._save_report()
+        if self._enabled:
+            logger.exception('Crash detected!')
+            if etype:
+                self._etype = etype
+                self._evalue = evalue
+                self._tb = tb
+                great_success = self._sendmail(self.subject(), self.body(), self.attachments(), html=self.html)
+                if not great_success:
+                    self._save_report()
         else:
             logger.info('No crashes detected.')
-            logger.info('Exiting.')
 
     def subject(self):
         return 'Crash Report'
