@@ -49,12 +49,13 @@ class CrashReporter(object):
                 os.makedirs(report_dir)
 
     def enable(self):
-        self._enabled = True
         self.logger.info('CrashReporter: Enabled')
+        self._enabled = True
 
     def disable(self):
-        self._enabled = False
         self.logger.info('CrashReporter: Disabled')
+        self._enabled = False
+        self.stop_watcher()
 
     def start_watcher(self):
         if self._get_offline_reports():
@@ -70,7 +71,7 @@ class CrashReporter(object):
         """
         if self._watcher:
             self._watcher_enabled = False
-            self._watcher.join()
+            self.logger.info('CrashReporter: Stopping watcher.')
 
     def __enter__(self):
         self.enable()
@@ -186,11 +187,11 @@ class CrashReporter(object):
         return sorted(glob.glob(os.path.join(self.report_dir, "crashreport*")))
 
     def _watcher_thread(self):
-        great_success = self._send_offline_reports()
+        great_success = False
         while not great_success:
+            time.sleep(self.check_interval)
             if not self._watcher_enabled:
                 break
             self.logger.info('CrashReporter: Attempting to send offline reports.')
-            time.sleep(self.check_interval)
             great_success = self._send_offline_reports()
-        self.logger.info('CrashReporter: Stopping watcher.')
+        self.logger.info('CrashReporter: Watcher stopped.')
