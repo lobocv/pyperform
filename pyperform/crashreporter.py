@@ -171,10 +171,11 @@ class CrashReporter(object):
         if offline_reports:
             # Add the body of the message
             body = 'Here is a list of crash reports that were stored offline.\n'
+            body += '-------------------------------------------------\n'
             for report in offline_reports:
                 with open(report, 'r') as _f:
                     text = _f.readlines()
-                    body += '\n'.join(text)
+                    body += ''.join(text)
                     body += '-------------------------------------------------\n'
             great_success = self._sendmail(self.subject(), body)
             if great_success:
