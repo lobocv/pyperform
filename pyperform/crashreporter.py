@@ -60,6 +60,7 @@ class CrashReporter(object):
         if self._get_offline_reports():
             self.logger.info('CrashReporter: Starting watcher.')
             self._watcher = Thread(target=self._watcher_thread, name='offline_reporter')
+            self._watcher.setDaemon(True)
             self._watcher_enabled = True
             self._watcher.start()
 
