@@ -1,6 +1,5 @@
 __author__ = 'calvin'
 
-import logging
 import traceback
 import os
 import glob
@@ -8,16 +7,13 @@ import datetime
 import shutil
 import smtplib
 import time
+import logging
 
 from threading import Thread
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
 
 class CrashReporter(object):
     '''
@@ -31,7 +27,7 @@ class CrashReporter(object):
     '''
 
     def __init__(self, username, password, recipients, smtp_host, smtp_port=0, html=False, report_dir=None,
-                 check_interval=600):
+                 check_interval=5*60, logger=None):
         self.user = username
         self.pw = password
         self.recipients = recipients
@@ -39,32 +35,48 @@ class CrashReporter(object):
         self.smtp_host = smtp_host
         self.smtp_port = smtp_port
         self._enabled = True
+        self.logger = logger if logger else logging.getLogger(__name__)
         # Setup the directory used to store offline crash reports
         self.report_dir = report_dir
         self.check_interval = check_interval
         self._offline_report_limit = 5
+        self._watcher = None
+        self._watcher_enabled = False
         if report_dir:
             if os.path.exists(report_dir):
-                if self._get_offline_reports():
-                    t = Thread(target=self._watcher, name='offline_reporter')
-                    t.start()
+                self.start_watcher()
             else:
                 os.makedirs(report_dir)
 
     def enable(self):
         self._enabled = True
-        logging.info('CrashReporter: Enabled')
+        self.logger.info('CrashReporter: Enabled')
 
     def disable(self):
         self._enabled = False
-        logging.info('CrashReporter: Disabled')
+        self.logger.info('CrashReporter: Disabled')
+
+    def start_watcher(self):
+        if self._get_offline_reports():
+            self.logger.info('CrashReporter: Starting watcher.')
+            self._watcher = Thread(target=self._watcher_thread, name='offline_reporter')
+            self._watcher_enabled = True
+            self._watcher.start()
+
+    def stop_watcher(self):
+        """
+        Stop the watcher thread that tries to send offline reports.
+        """
+        if self._watcher:
+            self._watcher_enabled = False
+            self._watcher.join()
 
     def __enter__(self):
         self.enable()
 
     def __exit__(self, etype, evalue, tb):
         if self._enabled:
-            logger.exception('Crash detected!')
+            self.logger.exception('CrashReporter: Crash detected!')
             if etype:
                 self._etype = etype
                 self._evalue = evalue
@@ -73,7 +85,7 @@ class CrashReporter(object):
                 if not great_success:
                     self._save_report()
         else:
-            logger.info('No crashes detected.')
+            self.logger.info('CrashReporter: No crashes detected.')
 
     def subject(self):
         return 'Crash Report'
@@ -124,7 +136,7 @@ class CrashReporter(object):
             ms.sendmail(self.user, self.recipients, msg.as_string())
             ms.close()
         except Exception as e:
-            logger.error(e)
+            self.logger.error('CrashReporter: %s' % e)
             return False
 
         return True
@@ -166,15 +178,18 @@ class CrashReporter(object):
             if great_success:
                 for report in offline_reports:
                     os.remove(report)
-                logger.info('Offline reports sent.')
+                self.logger.info('CrashReporter: Offline reports sent.')
             return great_success
 
     def _get_offline_reports(self):
         return sorted(glob.glob(os.path.join(self.report_dir, "crashreport*")))
 
-    def _watcher(self):
+    def _watcher_thread(self):
         great_success = self._send_offline_reports()
         while not great_success:
-            logger.info('Attempting to send offline reports.')
+            if not self._watcher_enabled:
+                break
+            self.logger.info('CrashReporter: Attempting to send offline reports.')
             time.sleep(self.check_interval)
             great_success = self._send_offline_reports()
+        self.logger.info('CrashReporter: Stopping watcher.')
