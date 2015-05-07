@@ -27,7 +27,7 @@ class CrashReporter(object):
     '''
 
     def __init__(self, username, password, recipients, smtp_host, smtp_port=0, html=False, report_dir=None,
-                 check_interval=5*60, logger=None):
+                 check_interval=5*60, logger=None, offline_report_limit=5):
         self.user = username
         self.pw = password
         self.recipients = recipients
@@ -39,7 +39,7 @@ class CrashReporter(object):
         # Setup the directory used to store offline crash reports
         self.report_dir = report_dir
         self.check_interval = check_interval
-        self._offline_report_limit = 5
+        self._offline_report_limit = offline_report_limit
         self._watcher = None
         self._watcher_enabled = False
         if report_dir:
