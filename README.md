@@ -7,7 +7,7 @@ Using the pyperform decorators, you can easily implement timeit tests to your fu
 
 
 Features
-========
+--------
 Features of pyperform include:
 
     - Quick, easy to implement in-code performance tests that run once when the function is defined
@@ -19,19 +19,19 @@ Features of pyperform include:
     - Community-driven library of performance tests to learn from.
 
 Installation
-============
+------------
 To install:
     
     pip install pyperform
     
 
 Compatibility
-=============
+-------------
 PyPerform was developed in Python 2.7 but has been tested with Python 3.4. Please report any compatibility issues or
 send pull requests with your changes!
 
 Usage
-=====
+-----
 
 To use pyperform to benchmark functions, you need to add one of the following decorators:
 
@@ -90,7 +90,7 @@ Results in:
 Alternative, you can set the tag for pyperform to search for by calling set_import_tag(tag)` with a string argument.
     
 The setup argument (Optional)
-------------
+-----------------------------
 All decorators have a setup argument which can be either a function with no arguments, or string of code. If given a
 function, the body of the function is executed in the global scope. This means that objects and variables instantiated 
 in the body of the function are accessible from within the benchmarked function.
@@ -223,7 +223,7 @@ and printed to the screen, the results of the BenchmarkedFunction
     same_as_method_2 	 262.827 ns
     
 Validation
-==========
+----------
 ComparisonBenchmark has a optional argument `validate`. When `validate=True`, the return value of each 
 ComparisonBenchmark in a group is compared. If the results of the function are the not same, a ValidationError is raised.
  
