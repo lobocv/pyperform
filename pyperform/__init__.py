@@ -8,6 +8,8 @@ from .comparisonbenchmark import ComparisonBenchmark
 from .benchmarkedclass import BenchmarkedClass
 from .benchmarkedfunction import BenchmarkedFunction
 from .timer import timer
+from .exceptions import ValidationError
+
 
 def enable():
     """
