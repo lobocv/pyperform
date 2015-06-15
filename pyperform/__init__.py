@@ -7,7 +7,7 @@ from pyperform.benchmark import Benchmark
 from .comparisonbenchmark import ComparisonBenchmark
 from .benchmarkedclass import BenchmarkedClass
 from .benchmarkedfunction import BenchmarkedFunction
-
+from .timer import timer
 
 def enable():
     """
