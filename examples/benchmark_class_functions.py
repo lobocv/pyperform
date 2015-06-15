@@ -22,7 +22,6 @@ class Person(object):
         self.height = height
         self.monthly_income = monthly_income
 
-
     @ComparisonBenchmark('Calculate Savings', classname="Person", timeit_number=100, validation=True, largs=(55,),
                          kwargs={'monthly_spending': 500})
     def calculate_savings_method1(self, retirement_age, monthly_spending=0):
