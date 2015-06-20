@@ -66,26 +66,43 @@ function. The setup argument is described in the following section. All decorato
 arguments which are can be used to set the number of trials and repetitions to use with timeit. The ComparisonBenchmark
 has a validation flag, which when set to True, will attempt to compare the results of the functions in the group.
 
-Imports
--------
-Imports can be added by appending the tag `#!` to the end of an import statement in a script. Pyperform will find all
-import statements that are tagged with `#!` and import them into your benchmark.
+Imports and Setup Code
+----------------------
+Sometimes your decorated function will require some setup code or imported modules. You can easily include any lines of 
+code by by appending the tag `#!` to the end of the line. For functions and classes, you only need to tag the `def` or
+`class` line and PyPerform will include the entire function/class definition as setup code.
+
 
 For example:
 
 ```python
 
-from math import log #!
-
-@BenchmarkedFunction(largs=(16,))
-def log_base_2(x):
-    return log(x, 2)
+    from pyperform import BenchmarkedFunction
+    
+    import math #!
+    a = 10  #!
+    
+    
+    def do_calcuation(a, b): #!
+        return a * b
+    
+    
+    @BenchmarkedFunction(largs=(5,))
+    def call_function(b):
+        # We can reference the `a` variable because it is tagged
+        result = a * b
+        assert result == 50
+        # We can call the math module because it is tagged.
+        math.log10(100)
+        # We can call this function because it is tagged.
+        calc_result = do_calcuation(a, b)
+        return calc_result
 
 ```
 
 Results in:
 
-    log_base_2 	 3.567 us
+    call_function 	 6.214 us
     
 Alternative, you can set the tag for pyperform to search for by calling set_import_tag(tag)` with a string argument.
     
