@@ -6,21 +6,7 @@ except ImportError:
 from pyperform import *
 
 
-def _setup():
-    class SomeClass(object):
-
-        def __init__(self, n):
-            self.n = n
-            self.count = 0
-            if n > 0:
-                self.a = SomeClass(n-1)
-
-        def func(self):
-            self.count += 1
-
-            return sum(range(10))
-
-class SomeClass(object):
+class SomeClass(object): #!
 
     def __init__(self, n):
         self.n = n
@@ -30,16 +16,17 @@ class SomeClass(object):
 
     def func(self):
         self.count += 1
+
         return sum(range(10))
 
-@BenchmarkedClass(setup=_setup)
+@BenchmarkedClass()
 class MyClass(object):
 
     def __init__(self):
         self.obj = SomeClass(5)             # setup an object with some nested lookup
         self.g = self.generator()           # setup the generator in advance
 
-    @ComparisonBenchmark('gen', classname='MyClass', setup=_setup, validation=True)
+    @ComparisonBenchmark('gen', classname='MyClass', validation=True)
     def call_generator(self):
         for i in self.g:                # Call the generator which calls the function 100 times (like not_generator)
             pass
@@ -52,7 +39,7 @@ class MyClass(object):
             yield i
 
 
-    @ComparisonBenchmark('gen', classname='MyClass', setup=_setup, validation=True)
+    @ComparisonBenchmark('gen', classname='MyClass', validation=True)
     def not_generator(self):
         func = self.obj.a.a.a.a.func
         for i in range(100):

@@ -1,6 +1,7 @@
 __author__ = 'calvin'
 
 import sys
+import re
 from math import log10
 
 if sys.version[0] == '3':
@@ -11,6 +12,8 @@ else:
 
 _import_tag = '#!'
 
+classdef_regex = re.compile(r"\S*def .*#!|class .*#!")
+import_regex = re.compile(r"from .*#!|import .*#!")
 
 def get_import_tag():
     return _import_tag
@@ -70,8 +73,31 @@ def remove_decorators(src):
 
 
 def get_tagged_imports(fp, tag):
+    imports = []
+    def_found = False
+    def_lines = []
     with open(fp, 'r') as f:
-        imports = [l[:l.index(tag)] for l in f if tag in l and (l.startswith('import') or l.startswith('from'))]
+        for line in f:
+            # find any import statements
+            tagged_import = re.findall(import_regex, line)
+            if tagged_import:
+                imports.append(line)
+
+            # Find the indentation level of the function/class definition and capture all source code lines
+            # until we get a line that is the same indentation level (end of function/class definition).
+            tagged_class_or_def = re.findall(classdef_regex, line)
+            if tagged_class_or_def and not def_found:
+                def_found = True
+                def_indent = len(line) - len(line.lstrip(' '))
+                def_lines.append(line)
+            elif def_found:
+                indent = len(line) - len(line.lstrip(' '))
+                if indent == def_indent and line != '\n':
+                    def_found = False
+                    imports.append(''.join(def_lines))
+                else:
+                    def_lines.append(line)
+
     src = '\n'.join(imports)
     return src
 
