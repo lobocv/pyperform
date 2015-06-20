@@ -124,7 +124,6 @@ def get_tagged_imports(fp, tag):
         imports.append(line)
 
     src = '\n'.join(imports) + '\n'
-    print src
     return src
 
 
