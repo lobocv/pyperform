@@ -34,7 +34,7 @@ class Benchmark(object):
             self._is_function = isinstance(caller, FunctionType)
 
             fp = inspect.getfile(caller)
-            imports = get_tagged_imports(fp, get_import_tag())
+            imports = get_tagged_imports(fp)
             func_src = remove_decorators(globalize_indentation(inspect.getsource(caller)))
 
             # Determine if the function is bound. If it is, keep track of it so we can run the benchmark after the class

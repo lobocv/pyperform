@@ -103,8 +103,7 @@ For example:
 Results in:
 
     call_function 	 6.214 us
-    
-Alternative, you can set the tag for pyperform to search for by calling `set_import_tag(tag)` with a string argument.
+
     
 The setup argument (Optional)
 -----------------------------

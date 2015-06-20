@@ -10,18 +10,9 @@ else:
     import cStringIO as StringIO        # Python 2.x
     range = xrange
 
-_import_tag = '#!'
 
 classdef_regex = re.compile(r"\S*def .*#!|class .*#!")
 tagged_line_regex = re.compile(r".*#!")
-
-def get_import_tag():
-    return _import_tag
-
-
-def set_import_tag(tag):
-    if type(tag) == str:
-        globals()['_import_tag'] = tag
 
 
 def convert_time_units(t):
@@ -72,7 +63,7 @@ def remove_decorators(src):
     return setup_src
 
 
-def get_tagged_imports(fp, tag):
+def get_tagged_imports(fp):
     imports = []
     inside_def = False
     def_lines = []
