@@ -13,7 +13,7 @@ else:
 _import_tag = '#!'
 
 classdef_regex = re.compile(r"\S*def .*#!|class .*#!")
-import_regex = re.compile(r"from .*#!|import .*#!")
+tagged_line_regex = re.compile(r".*#!")
 
 def get_import_tag():
     return _import_tag
@@ -74,31 +74,57 @@ def remove_decorators(src):
 
 def get_tagged_imports(fp, tag):
     imports = []
-    def_found = False
+    inside_def = False
     def_lines = []
+    def_indent = 0
     with open(fp, 'r') as f:
+        lastLine = f.readline()
         for line in f:
-            # find any import statements
-            tagged_import = re.findall(import_regex, line)
-            if tagged_import:
-                imports.append(line)
+
+            tagged_class_or_def = re.findall(classdef_regex, lastLine)
+            tagged_line = re.findall(tagged_line_regex, lastLine)
 
             # Find the indentation level of the function/class definition and capture all source code lines
             # until we get a line that is the same indentation level (end of function/class definition).
-            tagged_class_or_def = re.findall(classdef_regex, line)
-            if tagged_class_or_def and not def_found:
-                def_found = True
-                def_indent = len(line) - len(line.lstrip(' '))
-                def_lines.append(line)
-            elif def_found:
-                indent = len(line) - len(line.lstrip(' '))
-                if indent == def_indent and line != '\n':
-                    def_found = False
+            if tagged_class_or_def or inside_def:
+                if tagged_class_or_def and def_lines:
                     imports.append(''.join(def_lines))
-                else:
-                    def_lines.append(line)
+                    def_lines = []
+                    inside_def = False
 
-    src = '\n'.join(imports)
+                if inside_def:
+                    # For lines within the definition
+                    indent = len(lastLine) - len(lastLine.lstrip(' '))
+                    if indent == def_indent and lastLine != '\n':
+                        imports.append(''.join(def_lines))
+                        def_lines = []
+                        inside_def = False
+                        def_indent = 0
+                        if tagged_line:
+                            imports.append(lastLine)
+                    else:
+                        if lastLine != '\n':
+                            def_lines.append(lastLine)
+                else:
+                    # For the definition line
+                    inside_def = True
+                    def_indent = len(lastLine) - len(lastLine.lstrip(' '))
+                    def_lines.append(lastLine)
+            elif tagged_line:
+                imports.append(lastLine)
+
+            lastLine = line
+
+    # Examine the last line
+    tagged_line = re.findall(tagged_line_regex, lastLine)
+    if inside_def:
+        def_lines.append(line)
+        imports.append(''.join(def_lines))
+    elif tagged_line:
+        imports.append(line)
+
+    src = '\n'.join(imports) + '\n'
+    print src
     return src
 
 
