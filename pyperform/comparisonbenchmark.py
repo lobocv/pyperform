@@ -72,7 +72,7 @@ class ComparisonBenchmark(Benchmark):
         log.write('\t' + tests[0].stmt)
         log.write('\n\n\n')
         fmt = "{0: <8} {1: <35} {2: <12} {3: <15} {4: <15} {5: <14}\n"
-        log.write(fmt.format('Rank', 'Function Name', 'Time', '% of Fastest', 'timeit_repeat', 'timeit_number'))
+        log.write(fmt.format('Rank', 'Function Name', 'Time', '% of Slowest', 'timeit_repeat', 'timeit_number'))
         log.write(_line_break)
         log.write('\n')
 
@@ -81,7 +81,7 @@ class ComparisonBenchmark(Benchmark):
             log.write(fmt.format(i+1,
                                  func_name,
                                  convert_time_units(t.time_average_seconds),
-                                 "{:.1f}".format(tests[0].time_average_seconds / t.time_average_seconds * 100),
+                                 "{:.1f}".format(t.time_average_seconds / tests[-1].time_average_seconds * 100),
                                  t.timeit_repeat,
                                  t.timeit_number))
         log.write(_line_break)
