@@ -78,10 +78,14 @@ class ComparisonBenchmark(Benchmark):
 
         for i, t in enumerate(tests):
             func_name = "{}.{}".format(t.classname, t.callable.__name__) if t.classname else t.callable.__name__
+            if i == len(tests)-1:
+                time_percent = 'Slowest'
+            else:
+                time_percent = "{:.1f}".format(t.time_average_seconds / tests[-1].time_average_seconds * 100)
             log.write(fmt.format(i+1,
                                  func_name,
                                  convert_time_units(t.time_average_seconds),
-                                 "{:.1f}".format(t.time_average_seconds / tests[-1].time_average_seconds * 100),
+                                 time_percent,
                                  t.timeit_repeat,
                                  t.timeit_number))
         log.write(_line_break)
