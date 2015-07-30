@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-__version__ = '1.72'
+__version__ = '1.73'
 
 
 from pyperform.benchmark import Benchmark
