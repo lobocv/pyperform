@@ -7,6 +7,7 @@ from pyperform.benchmark import Benchmark
 from .comparisonbenchmark import ComparisonBenchmark
 from .benchmarkedclass import BenchmarkedClass
 from .benchmarkedfunction import BenchmarkedFunction
+from .thread import Thread
 from .timer import timer
 from .exceptions import ValidationError
 
