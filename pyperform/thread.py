@@ -83,16 +83,16 @@ class ProfiledThread(BaseThread):
             f.write(s.getvalue())
 
     @staticmethod
-    def combine_profiles(profile_dir, sortby='cumulative'):
+    def combine_profiles(profile_dir, outfile, sortby='cumulative'):
         s = StringIO.StringIO()
-        ps = pstats.Stats(self.profiler, stream=s)
         stat_files = [f for f in os.listdir(profile_dir) if os.path.isfile(os.path.join(profile_dir, f))
                       and f.endswith('.stats')]
-        for stat in stat_files:
-            ps.add(os.path.join(profile_dir, stat))
-        app_name = self.application_name
+        ps = pstats.Stats(os.path.join(profile_dir, stat_files[0]), stream=s)
+        if len(stat_files) > 1:
+            for stat in stat_files[1:]:
+                ps.add(os.path.join(profile_dir, stat))
 
-        profile_name = os.path.join(profile_dir, '{}.profile'.format(app_name))
+        profile_name = os.path.join(profile_dir, '{}.profile'.format(outfile.replace('.profile', '')))
         with open(profile_name, 'w') as f:
             ps.strip_dirs()
             ps.sort_stats(sortby)
@@ -108,3 +108,7 @@ class LoggedThread(BaseThread):
             super(LoggedThread, self).run()
         except Exception as e:
             logger.error('LoggedThread: {name}: {error}.'.format(name=self.name, error=e))
+
+
+if __name__ == '__main__':
+    ProfiledThread.combine_profiles('/home/calvin/.lmx200/temp/profiles', '/home/calvin/.lmx200/temp/profiles/combined')
