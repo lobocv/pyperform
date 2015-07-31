@@ -109,6 +109,3 @@ class LoggedThread(BaseThread):
         except Exception as e:
             logger.error('LoggedThread: {name}: {error}.'.format(name=self.name, error=e))
 
-
-if __name__ == '__main__':
-    ProfiledThread.combine_profiles('/home/calvin/.lmx200/temp/profiles', '/home/calvin/.lmx200/temp/profiles/combined')
