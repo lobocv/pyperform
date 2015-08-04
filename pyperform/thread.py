@@ -5,7 +5,7 @@ import logging
 import StringIO
 import os
 import pstats
-import __builtin__
+import sys
 import threading
 
 logger = logging.getLogger('PyPerform')
@@ -17,7 +17,7 @@ profiled_thread_enabled = False
 logged_thread_enabled = True
 
 
-def enable_thread_profiling(profile_dir):
+def enable_thread_profiling(profile_dir, exception_callback=None):
     """
     Monkey-patch the threading.Thread class with our own ProfiledThread. Any subsequent imports of threading.Thread
     will reference ProfiledThread instead.
@@ -27,16 +27,18 @@ def enable_thread_profiling(profile_dir):
         ProfiledThread.profile_dir = profile_dir
     else:
         raise OSError('%s does not exist' % profile_dir)
+    ProfiledThread.exception_callback = exception_callback
     Thread = threading.Thread = ProfiledThread
     profiled_thread_enabled = True
 
 
-def enable_thread_logging():
+def enable_thread_logging(exception_callback=None):
     """
     Monkey-patch the threading.Thread class with our own LoggedThread. Any subsequent imports of threading.Thread
     will reference LoggedThread instead.
     """
     global logged_thread_enabled, Thread
+    LoggedThread.exception_callback = exception_callback
     Thread = threading.Thread = LoggedThread
     logged_thread_enabled = True
 
@@ -47,6 +49,7 @@ class ProfiledThread(BaseThread):
     to a single .profile.
     """
     profile_dir = None
+    exception_callback = None
 
     def run(self):
         profiler = cProfile.Profile()
@@ -55,6 +58,9 @@ class ProfiledThread(BaseThread):
             profiler.runcall(BaseThread.run, self)
         except Exception as e:
             logger.error('ProfiledThread: {name}: {error}.'.format(name=self.name, error=e))
+            if ProfiledThread.exception_callback:
+                e_type, e_value, last_traceback = sys.exc_info()
+                ProfiledThread.exception_callback(e_type, e_value, last_traceback)
         finally:
             if ProfiledThread.profile_dir is None:
                 logger.debug('ProfiledThread: profile_dir is not specified. '
@@ -102,10 +108,16 @@ class ProfiledThread(BaseThread):
 
 class LoggedThread(BaseThread):
 
+    exception_callback = None
+
     def run(self):
-        logger.debug('LoggedThread: Starting ProfiledThread {}'.format(self.name))
+        logger.debug('LoggedThread: Starting LoggedThread {}'.format(self.name))
         try:
             super(LoggedThread, self).run()
         except Exception as e:
             logger.error('LoggedThread: {name}: {error}.'.format(name=self.name, error=e))
+            if LoggedThread.exception_callback:
+                e_type, e_value, last_traceback = sys.exc_info()
+                LoggedThread.exception_callback(e_type, e_value, last_traceback)
+
 
