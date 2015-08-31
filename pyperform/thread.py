@@ -8,9 +8,6 @@ import pstats
 import sys
 import threading
 
-logger = logging.getLogger('PyPerform')
-logger.setLevel(logging.DEBUG)
-
 Thread = threading.Thread          # Start off using threading.Thread until changed
 BaseThread = threading.Thread      # Store the Thread class from the threading module before monkey-patching
 profiled_thread_enabled = False
@@ -54,17 +51,18 @@ class ProfiledThread(BaseThread):
     def run(self):
         profiler = cProfile.Profile()
         try:
-            logger.debug('ProfiledThread: Starting ProfiledThread {}'.format(self.name))
+            logging.debug('ProfiledThread: Starting ProfiledThread {}'.format(self.name))
             profiler.runcall(BaseThread.run, self)
         except Exception as e:
-            logger.error('ProfiledThread: {name}: {error}.'.format(name=self.name, error=e))
+            logging.error('ProfiledThread: Error encountered in Thread {name}'.format(name=self.name))
+            logging.error(e)
             if ProfiledThread.exception_callback:
                 e_type, e_value, last_traceback = sys.exc_info()
                 ProfiledThread.exception_callback(e_type, e_value, last_traceback)
         finally:
             if ProfiledThread.profile_dir is None:
-                logger.debug('ProfiledThread: profile_dir is not specified. '
-                             'Profile \'{}\' will not be saved.'.format(self.name))
+                logging.warning('ProfiledThread: profile_dir is not specified. '
+                                'Profile \'{}\' will not be saved.'.format(self.name))
                 return
             self.print_stats(profiler)
 
@@ -111,11 +109,12 @@ class LoggedThread(BaseThread):
     exception_callback = None
 
     def run(self):
-        logger.debug('LoggedThread: Starting LoggedThread {}'.format(self.name))
+        logging.debug('LoggedThread: Starting LoggedThread {}'.format(self.name))
         try:
             super(LoggedThread, self).run()
         except Exception as e:
-            logger.error('LoggedThread: {name}: {error}.'.format(name=self.name, error=e))
+            logging.error('LoggedThread: Error encountered in Thread {name}'.format(name=self.name))
+            logging.error(e)
             if LoggedThread.exception_callback:
                 e_type, e_value, last_traceback = sys.exc_info()
                 LoggedThread.exception_callback(e_type, e_value, last_traceback)
