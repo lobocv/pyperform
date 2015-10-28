@@ -2,7 +2,7 @@ __author__ = 'calvin'
 
 import cProfile
 import logging
-import StringIO
+from io import StringIO
 import os
 import pstats
 import sys
@@ -118,5 +118,3 @@ class LoggedThread(BaseThread):
             if LoggedThread.exception_callback:
                 e_type, e_value, last_traceback = sys.exc_info()
                 LoggedThread.exception_callback(e_type, e_value, last_traceback)
-
-
