@@ -2,8 +2,8 @@ __author__ = 'calvin'
 
 import inspect
 import timeit
-
 from types import FunctionType
+from pyperform import StringIO
 from .tools import *
 
 

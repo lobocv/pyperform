@@ -5,9 +5,8 @@ import re
 from math import log10
 
 if sys.version[0] == '3':
-    import io as StringIO               # Python 3.x
+    pass
 else:
-    import cStringIO as StringIO        # Python 2.x
     range = xrange
 
 

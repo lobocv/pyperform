@@ -1,6 +1,7 @@
 __author__ = 'lobocv'
 
 from distutils.core import setup
+
 from pyperform import __version__
 
 setup(

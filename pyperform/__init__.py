@@ -1,7 +1,14 @@
 from __future__ import print_function
 
 __version__ = '1.83'
+import sys
 
+if sys.version[0] == '3':
+    import io as StringIO  # Python 3.x
+else:
+    import cStringIO as StringIO  # Python 2.x
+
+    range = xrange
 
 from pyperform.benchmark import Benchmark
 from .comparisonbenchmark import ComparisonBenchmark

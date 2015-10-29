@@ -1,7 +1,7 @@
 __author__ = 'calvin'
 
 import logging
-
+from pyperform import StringIO
 from .benchmark import Benchmark
 from .tools import *
 from .exceptions import ValidationError

@@ -2,7 +2,7 @@ __author__ = 'calvin'
 
 import cProfile
 import logging
-import StringIO
+from pyperform import StringIO
 import os
 import pstats
 import sys

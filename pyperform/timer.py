@@ -1,6 +1,7 @@
 __author__ = 'calvin'
 
 from time import time
+
 from .tools import convert_time_units
 
 timer_format = "{name}: {time}"

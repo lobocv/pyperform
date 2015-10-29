@@ -1,6 +1,7 @@
 __author__ = 'calvin'
 
 import logging
+
 from .benchmark import Benchmark
 from .benchmarkedfunction import BenchmarkedFunction
 from .tools import convert_time_units
