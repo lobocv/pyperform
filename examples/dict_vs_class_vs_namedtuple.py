@@ -1,12 +1,12 @@
 __author__ = 'clobo'
 
-from collections import namedtuple  # !
+from collections import namedtuple  #!
 from pyperform import ComparisonBenchmark
 
-MyNamedTuple = namedtuple('ButtonStatus', ('name', 'age', 'gender'))  # !
+MyNamedTuple = namedtuple('ButtonStatus', ('name', 'age', 'gender'))  #!
 
 
-class MyClass(object):  # !
+class MyClass(object):  #!
     __slots__ = ('name', 'age', 'gender')
 
     def __init__(self, name, age, gender):
