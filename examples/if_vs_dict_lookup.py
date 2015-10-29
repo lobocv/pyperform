@@ -1,6 +1,8 @@
 __author__ = 'calvin'
-from pyperform import ComparisonBenchmark
 import random #!
+
+from pyperform import ComparisonBenchmark
+
 
 def _setup():
     l = []

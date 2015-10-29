@@ -1,6 +1,6 @@
 __author__ = 'Calvin'
 from pyperform import ComparisonBenchmark, BenchmarkedFunction
-import math #!
+
 
 @ComparisonBenchmark('Group1', largs=(100,))
 def mytest(l):

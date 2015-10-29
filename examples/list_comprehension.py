@@ -8,8 +8,9 @@ try:
     from builtins import range
 except ImportError:
     range = xrange
-from pyperform import ComparisonBenchmark
 from math import sin  #!
+
+from pyperform import ComparisonBenchmark
 
 
 @ComparisonBenchmark('Group1', validation=True, largs=(100,))
