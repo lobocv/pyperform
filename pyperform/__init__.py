@@ -17,6 +17,7 @@ from .benchmarkedfunction import BenchmarkedFunction
 from .thread import Thread
 from .timer import timer
 from .exceptions import ValidationError
+from .customlogger import CustomLogLevel, new_log_level
 
 
 def enable():
