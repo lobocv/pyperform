@@ -10,11 +10,12 @@ from .exceptions import ValidationError
 class ComparisonBenchmark(Benchmark):
     groups = {}
 
-    def __init__(self, group, classname=None, setup=None, validation=False, largs=None, kwargs=None, **kw):
+    def __init__(self, group, classname=None, setup=None, validation=False, validation_func=None, largs=None, kwargs=None, **kw):
         super(ComparisonBenchmark, self).__init__(setup=setup, largs=largs, kwargs=kwargs, **kw)
         self.group = group
         self.classname = classname
         self.result_validation = validation
+        self.validation_func = validation_func
         self.result = None
         if group not in self.groups:
             self.groups[group] = []
@@ -51,7 +52,11 @@ class ComparisonBenchmark(Benchmark):
             if not all(test):
                 raise ValueError('All functions within a group must have the same validation flag.')
             compare_result = compare_against_benchmark.result
-            if compare_result == validation_scope['validation_result']:
+            if self.validation_func:
+                results_are_valid = self.validation_func(compare_result, validation_scope['validation_result'])
+            else:
+                results_are_valid = compare_result == validation_scope['validation_result']
+            if results_are_valid:
                 logging.info('PyPerform: Validating {}......PASSED!'.format(self.callable.__name__))
             else:
                 error = 'Results of functions {0} and {1} are not equivalent.\n{0}:\t {2}\n{1}:\t{3}'
