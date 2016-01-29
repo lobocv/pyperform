@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-__version__ = '1.85'
+__version__ = '1.86'
 import sys
 
 if sys.version[0] == '3':
