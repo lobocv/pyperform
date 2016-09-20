@@ -1,7 +1,7 @@
 __author__ = 'calvin'
 
-import sys
 import re
+import sys
 from math import log10
 
 if sys.version[0] == '3':
@@ -16,11 +16,13 @@ tagged_line_regex = re.compile(r".*#!")
 
 def convert_time_units(t):
     """ Convert time in seconds into reasonable time units. """
+    if t == 0:
+        return '0 s'
     order = log10(t)
     if -9 < order < -6:
         time_units = 'ns'
         factor = 1000000000
-    elif -6 < order < -3:
+    elif -6 <= order < -3:
         time_units = 'us'
         factor = 1000000
     elif -3 <= order < -1:
