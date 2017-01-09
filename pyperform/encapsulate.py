@@ -41,6 +41,7 @@ class Encapsulate(object):
         self._wrapper = None
         self.overridden = False
         self.objclass = None
+        self.instancemethods = {}
 
     @property
     def func_name(self):
@@ -73,7 +74,8 @@ class Encapsulate(object):
 
     def __get__(self, obj, objtype):
         """Support instance methods."""
-        if self._wrapper is None:
+        if obj not in self.instancemethods:
+
             self.objclass = obj.__class__
             if obj not in Encapsulate.encapsulations:
                 Encapsulate.encapsulations[obj] = {self.func_name: []}
@@ -101,9 +103,9 @@ class Encapsulate(object):
                     if idx > 0 and any(call_order[:idx]):
                         enc.overridden = True
 
-            self._wrapper = partial(self.__call__, obj)
+            self.instancemethods[obj] = partial(self.__call__, obj)
 
-        return self._wrapper
+        return self.instancemethods[obj]
 
     def __repr__(self):
         return 'Encapsulation for %s' % self._func.func_name
