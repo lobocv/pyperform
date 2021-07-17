@@ -95,7 +95,7 @@ class cProfileFuncStat(object):
 
 class cProfileParser(object):
     """
-    A manager class that reads in a pstats file and allows futher decontruction of the statistics.
+    A manager class that reads in a pstats file and allows further deconstruction of the statistics.
     """
     def __init__(self, pstats_file):
         self.path = pstats_file
